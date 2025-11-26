@@ -197,11 +197,19 @@ The rendering equation is **recursive**:
 - L_i at point x comes from L_o at other points
 - This creates infinite recursion (light bounces)
 
+**Mathematical Formulation:**
+- Rendering equation is **Fredholm integral equation of second kind**
+- Solution via **Neumann series** (also called Liouville-Neumann series)
+
 **Operator Form:**
 ```
 L = L_e + T L
 ```
-Where T is the transport operator.
+Where T is the **transport operator** (omits function arguments to simplify notation).
+
+**Series Expansion:**
+- Converges because of energy conservation of transport operator T
+- Substitute limit back into rendering equation (exploit linearity of T)
 
 **Solution:**
 ```
@@ -213,6 +221,7 @@ L = (I - T)^(-1) L_e = Σ_{k=0}^∞ T^k L_e
 - k=1: One bounce
 - k=2: Two bounces
 - ... (infinite bounces)
+- Infinite sum is correct solution!
 
 ### Solving the Rendering Equation
 
@@ -714,7 +723,23 @@ T(x → y) = exp(-∫_x^y σ_t(s) ds)
 
 Where σ_t is the **extinction coefficient** (absorption + out-scattering).
 
-**Physical meaning:** Probability that light travels from x to y without being absorbed or scattered.
+**Physical meaning:** Fraction of light transported over a certain distance along a ray
+
+**Optical Thickness:**
+```
+τ(x → y) = ∫_x^y σ_t(s) ds
+```
+- Dimensionless quantity
+- Transmittance: T = exp(-τ)
+
+**Multiplicative Property:**
+```
+T(x → z) = T(x → y) × T(y → z)
+```
+
+**Homogeneous Media (Beer's Law):**
+- If σ_t is constant: T = exp(-σ_t d) where d is distance
+- No ray marching necessary for homogeneous media
 
 ### Source Term
 
@@ -768,9 +793,20 @@ S(x_i, ω_i, x_o, ω_o) = dL_o(x_o, ω_o) / (dΦ_i(x_i, ω_i))
 ### Dipole Model
 
 **Approximation for subsurface scattering:**
+- **Diffusion approximation (dipole model)**
+- Light distribution in highly scattering media tends to become isotropic
+- Define simple, analytic diffuse BSSRDF
+- Express ratio of scattered over incident radiance as function R_d(r) of distance r = ||x_i - x_o||
+- **Diffusion profile:** R_d(r) as function of radius r
 - Model material as semi-infinite half-space
 - Place virtual light sources (dipole) below surface
-- Compute radiance using diffusion approximation
+- More efficient than brute force path tracing
+
+**Rendering with BSSRDF:**
+- Two-step process:
+  1. Sample entry point x_i on surface
+  2. Evaluate diffuse BSSRDF by sampling exit point x_o using diffusion profile
+- See Jensen et al. paper for details
 
 **Key parameters:**
 - **σ_a**: Absorption coefficient

@@ -71,29 +71,72 @@
 
 #### 2. PointNet
 
+**Key Paper:** "PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation" (2017)
+
 **Key idea:** Process point clouds directly without conversion
 
 **Architecture:**
-- Point-wise MLP
-- Max pooling (symmetric function for permutation invariance)
-- Global feature vector
+- Point-wise MLP h: maps each point to higher dimensional feature vector (K >> 3, typically K=1024)
+- Symmetric function g: max pooling (invariant to order)
+- Function γ: maps global feature to output
+- Two spatial transformers (one for point cloud, one for features)
+
+**Mathematical Formulation:**
+```
+f({x₁, ..., xₙ}) ≈ γ(max_{i} h(x_i))
+```
+
+**Proof:** Arbitrary continuous set function f can be approximated to any accuracy ε if K is sufficiently large
 
 **Properties:**
 - Permutation invariant
 - Handles variable number of points
-- Efficient
+- Efficient (sparse operations)
+- Low memory usage
 
 **Limitations:**
-- No local structure modeling
-- PointNet++ extends with hierarchical processing
+- No local structure modeling (global only)
+- PointNet++ extends with hierarchical processing and spatial locality
+
+**PointNet++:**
+- Hierarchical processing with set abstraction layers
+- Captures local neighborhoods at multiple scales
+- Better for local structures
 
 #### 3. Transformers
 
+**Key Paper:** "Point Transformer" (ICCV 2021)
+
 **Self-attention mechanism:**
-- Attend to all points/patches
-- Learn relationships between parts
-- **Advantages:** Long-range dependencies, flexible
-- **Disadvantages:** Quadratic complexity in sequence length
+- Architecture consisting of self-attention layers
+- Input: set of feature vectors ("tokens")
+- Output: set of transformed feature vectors
+- Captures all pairwise relationships between features within context window
+- Computes each output feature i using weighted sum of all input features j
+- Pairwise weights model contribution of input j to output i
+
+**Scalar Dot-Product Attention:**
+- Input features x_j, output features y_i
+- Feature transformations φ, ψ, α (queries, keys, values)
+- Position encoding δ (depends on i and j, e.g., θ(p_i - p_j))
+- Normalization ρ (softmax)
+- Attention layer is order independent (if not for positional encoding)
+
+**Vector Attention:**
+- Vector-valued relation function β (e.g., subtraction) instead of dot product
+- Pairwise weight vector for feature i, j
+- Element-wise multiplication
+
+**Advantages:**
+- Long-range dependencies
+- Flexible
+- Consider all pairwise relations using learned weighting
+- Enables parallel processing
+- State-of-the-art performance
+
+**Disadvantages:**
+- Quadratic complexity in size of context window
+- Unless sparse attention techniques are used
 
 ### Practice Problem 1
 
@@ -297,6 +340,11 @@ Where α_t = Π_{s=1}^t (1-β_s), z ~ N(0,I)
 
 **Goal:** Train 3D GAN without 3D supervision (only 2D images)
 
+**Quantitative Evaluation:**
+- **FID (Fréchet Inception Distance):** Using 50k generated images, all real data
+- **Identity consistency:** Using Arcface cosine similarity score across viewpoints
+- **Depth/pose consistency:** Consistency of NeRF geometry/poses with pseudo ground truth
+
 **Architecture:**
 1. **3D Shape Generator:** z → tri-plane features
 2. **Differentiable NeRF Rendering:** tri-planes → image
@@ -330,18 +378,49 @@ Where α_t = Π_{s=1}^t (1-β_s), z ~ N(0,I)
 
 **Goal:** Generate 3D shapes from text descriptions
 
-**Approach:**
-- Leverage pre-trained text-to-image diffusion model
-- Use Score Distillation Sampling (SDS)
-- Differentiable rendering connects 3D to 2D
+**Challenge:**
+- Requires large collection of text-3D object pairs (don't exist)
+- Approach: leverage existing diffusion-based text-to-image models
 
-**Score Distillation Sampling:**
+**Diffusion-Based Text-to-Image:**
+- Training: Given text-image pairs, train U-Net conditioned on text embedding
+- U-Net trained to predict (synthetic) noise added to image
+- Transformer-based text embedding from pre-trained large language model (e.g., T5-XXL)
+- Sampling: In each step, subtract (noise prediction - noise) from previous image, add new noise, iterate
+
+**DreamFusion Approach:**
+- NeRF parameters optimized for each 3D object that is generated
+- Random viewpoints for rendering
+- Text prompts augmented with "front", "side", "back" based on viewpoint
+- Update to rendered image computed using pre-trained diffusion model
+- Desired update backpropagated to NeRF parameters
+
+**NeRF Rendering Details:**
+- Predict diffuse BRDF (albedo) instead of radiance
+- Compute surface normals using gradient of density field
+- Shading using randomly positioned point light, ambient light
+- NeRF only evaluated within bounding box
+- Background color outside bounding box predicted using separate MLP
+
+**Score Distillation Sampling (SDS):**
 - Render 3D shape from random viewpoint
 - Evaluate diffusion model on rendered image
 - Use gradient to update 3D representation
 - Diffusion model frozen (not trained)
+- Key insight: Diffusion model provides "score" (gradient of log density) that guides 3D optimization
 
-**Key insight:** Diffusion model provides "score" (gradient of log density) that guides 3D optimization
+**Follow-up Work:**
+- Variational score distillation (NeurIPS 2023)
+- Classifier score distillation (ICLR 2024)
+- Better ways to backpropagate image update to rendering model
+
+**Evaluation:**
+- **R-Precision:** Accuracy with which CLIP retrieves correct image caption among distractors given scene rendering
+- **FID (Fréchet Inception Distance):** Quantitative evaluation of generative models
+  - Use deepest feature layer of pre-trained Inception V3 network (2048 dimensions)
+  - Fit Gaussians (mean μ, variance Σ) to Inception V3 feature vectors
+  - Compare Gaussians of true and generated data using Fréchet distance
+- **Identity consistency:** Using Arcface cosine similarity score across viewpoints
 
 ### Approaches
 

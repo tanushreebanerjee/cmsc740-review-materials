@@ -184,7 +184,17 @@ function intersectBVH(ray, node):
 - **Advantages**: Adaptive to scene density
 - **Disadvantages**: More complex implementation
 
-**k-d Tree:**
+**k-d Tree (k-dimensional tree):**
+- Binary space partitioning (BSP) tree
+- Dividing planes are axis-aligned
+- Recursively divide space into two parts using dividing planes
+- Cycle through splitting axis from one level to next
+- **Construction:** Minimize expected number of intersection tests
+- **Traversal:** Front-to-back traversal
+  - Traverse child nodes in order (front to back) along rays
+  - Stop as soon as first surface intersection found
+  - Maintain stack of subtrees (more efficient than recursion)
+- **Advantage over octree:** Fewer children per node (2 vs 8) → faster traversal
 - Binary space partitioning tree
 - Alternates splitting along x, y, z axes
 - Creates axis-aligned planes
@@ -212,6 +222,33 @@ function intersectBVH(ray, node):
 
 ## Radiometry
 
+### Physical Model of Light
+
+**Geometrical Optics:**
+- Light consists of rays (idealized narrow beams)
+- Rays carry "spectrum of light" - Spectral Power Distribution (SPD)
+- Rays reflect, refract, scatter at material interfaces
+- In homogeneous material: rays travel along straight lines
+- In vacuum: power (SPD) along ray is constant
+- Valid when wavelength << object size (otherwise wave effects like diffraction)
+
+**Color in Computer Graphics:**
+- Store only three samples of SPD: Red, Green, Blue (RGB)
+- **Why RGB is enough:** Trichromatic color vision
+  - Human eye has three types of photoreceptor cells (S, M, L)
+  - Each has different absorption curves
+  - Three primaries sufficient to match most colors
+- **Color spaces:** Quantifying color
+  - Many derived from CIE RGB color matching curves
+  - Determined using tristimulus experiment
+  - Gamut of 3 primaries doesn't cover all distinct colors
+
+**Spectral Radiance:**
+- Energy per time, per wavelength, per solid angle, per area
+- In practice: assume steady state, measure at discrete wavelengths (R, G, B)
+- **Radiance L:** Power per solid angle per area (vector of 3 values for RGB)
+- Function of position x and direction ω
+
 ### Fundamental Quantities
 
 #### 1. Radiant Energy (Q)
@@ -237,6 +274,13 @@ function intersectBVH(ray, node):
 **Why Radiance is Fundamental:**
 - Radiance is **conserved** along a ray in vacuum
 - This makes it the natural quantity for light transport
+
+#### 5. Radiant Intensity (I)
+- Power per solid angle
+- I = dΦ/dω
+- Units: W/sr
+- For isotropic point source: I constant in all directions
+- Total power: Φ = 4πI
 
 ### Solid Angle
 

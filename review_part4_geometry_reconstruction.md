@@ -112,17 +112,72 @@ Acquisition → Processing → Application
 ### Reconstruction Methods
 
 #### 1. Delaunay Triangulation
-- Connect points to form triangles
-- Maximize minimum angle (Delaunay criterion)
+
+**Definition:**
+- Dual graph of Voronoi diagram
+- Delaunay vertex (input point) corresponding to each Voronoi cell
+- Delaunay edge joining two neighboring Voronoi cells
+
+**Properties:**
+- No Delaunay vertex lies inside any circumsphere of any Delaunay triangle
+- Maximizes minimum angle in all triangles (Delaunay criterion)
 - **Advantages:** Guaranteed to exist, unique
 - **Disadvantages:** May create unwanted triangles
 
+**Algorithms:**
+- Non-trivial, especially in higher dimensions
+- Standard implementations available (e.g., Qhull)
+
+#### 1b. Voronoi Diagram
+
+**Definition:**
+- Partition of space into regions given by set of points
+- Voronoi cell of each input point: area closest to that point
+- Voronoi vertex: equidistant to three or more input points
+- Voronoi edge: equidistant to two input points
+
+**Medial Axis/Surface:**
+- Set of points with more than one closest point on curve/surface
+- Extension of Voronoi diagram to continuous curves/surfaces
+- For 2D curves: Voronoi vertices of dense samples approximate medial axis
+- For 3D: Doesn't hold (Voronoi vertices don't necessarily lie close to medial axis)
+
+#### 1c. Crust Algorithm
+
+**Goal:** Guarantee watertight mesh, same topology (genus) as original shape
+
+**Curve Reconstruction (2D):**
+1. Compute Voronoi diagram of sample points
+2. Compute Delaunay triangulation of sample points and Voronoi vertices
+3. Crust: all edges of Delaunay triangulation that contain only sample points (Voronoi filtering)
+
+**3D Extension:**
+- Use Voronoi vertices farthest from sample (instead of all Voronoi vertices)
+- More complex, see Amenta et al. paper
+
 #### 2. Poisson Surface Reconstruction
-- Fit implicit function to point cloud
-- Solve Poisson equation
-- Extract isosurface (marching cubes)
-- **Advantages:** Robust to noise, produces watertight surfaces
-- **Disadvantages:** May fill holes incorrectly
+
+**Key Paper:** "Screened Poisson Surface Reconstruction" (Kazhdan & Hoppe, ACM TOG 2013)
+
+**Approach:**
+- Fit implicit function f to point cloud
+- Solve Poisson equation: ∇²f = ∇·V
+- Extract isosurface {x | f(x) = 0} using marching cubes
+
+**Marching Cubes Algorithm:**
+- Sample implicit function on 3D grid
+- Construct triangulation of each grid cell separately
+- Given values of f at grid vertices
+- Triangulate zero-isosurface
+- Visit all cells, triangulate each cell with sign changes at vertices
+- 2⁸ = 256 cases of possible sign configurations
+- Can reduce to 15 basic cases using symmetries (rotation, reflection)
+- Encode each cell as 8-bit number (signs at vertices)
+- Look-up triangulation in precomputed table
+- Position vertices along cube edges by linear interpolation
+
+**Advantages:** Robust to noise, produces watertight surfaces
+**Disadvantages:** May fill holes incorrectly
 
 #### 3. Moving Least Squares (MLS)
 - Local surface fitting
@@ -323,6 +378,52 @@ L_i(r) = w_i(r) ||C_i(r) - Ĉ_i(r)||² + λ_u (1/w_i(r)) + λ_τ σ_i^(τ)(r)
 
 Where w_i(r) = 1/β_i(r) (uncertainty weighting)
 
+### MipNeRF
+
+**Key Paper:** "Mip-NeRF: A Multiscale Representation for Anti-Aliasing Neural Radiance Fields"
+
+**Key Idea:**
+- Radiance should take into account pixel size (anti-aliasing)
+- Extend spatial encoding to capture local size of conical beam
+- Pixel modeled as conical beam instead of infinitesimal ray
+- Generalized spatial encoding g(m, S) where:
+  - m: center of ellipsoid
+  - S: size of ellipsoid to locally approximate beam
+
+**Advantages:**
+- Better anti-aliasing
+- More accurate reconstruction
+
+### RefNeRF
+
+**Key Paper:** "Ref-NeRF: Structured View-Dependent Appearance for Neural Radiance Fields" (CVPR 2022)
+
+**Goal:** Small step towards modeling light reflection in NeRF framework
+
+**Intuition:**
+- Reflected light is (roughly) sum of diffuse and glossy
+- Diffuse is view independent
+- Glossy mostly determined by incident light around mirror reflection of viewing direction
+
+**Approach:**
+- Represent radiance as sum of diffuse c_d and glossy c_s
+- For glossy: use directional MLP using mirror reflection of view direction as input
+- **Integrated Directional Encoding (IDE):** Clever encoding of mirror reflection direction, including estimate of surface roughness
+- Tone mapping function to map radiance to captured pixel colors
+- Predict surface normals with regularization terms
+
+### Nerfies (Deformable NeRF)
+
+**Key Paper:** "Nerfies: Deformable Neural Radiance Fields" (2021)
+
+**Goal:** Handle dynamic/deformable scenes
+
+**Approach:**
+- Include temporal space deformation
+- NeRF in canonical space + deformation field
+- Map sample points to canonical space using deformation model
+- Similar idea to Neural Actor but more general
+
 ### Block-NeRF
 
 **Extension to large scenes:**
@@ -330,6 +431,7 @@ Where w_i(r) = 1/β_i(r) (uncertainty weighting)
 - Combine for rendering
 - Uses Mip-NeRF (beam geometry) + NeRF-W (appearance codes)
 - Visibility prediction to select relevant NeRFs
+- Appearance matching between NeRFs using latent appearance vectors
 
 ### NeuS: Neural Implicit Surfaces
 
@@ -379,6 +481,28 @@ Where w_i(r) = 1/β_i(r) (uncertainty weighting)
 - Higher quality than spatial encoding
 - No collision handling needed for spatial hashing (still works)
 
+### Plenoxels: Radiance Fields without Neural Networks
+
+**Key Paper:** "Plenoxels: Radiance Fields without Neural Networks" (CVPR 2022)
+
+**Approach:**
+- Grid-based representation instead of neural network
+- Parameters: radiance, density values at grid points c_i, σ_i
+- Evaluation: c(x) = linear interpolation of {c_i | i in neighborhood of x}
+
+**Directional Dependence: Spherical Harmonics**
+- Spherical harmonics: generalization of Fourier basis functions to sphere
+- "Frequency" l, "phase" m, spherical angles θ, φ
+- Represent functions f over sphere using weighted sum of spherical harmonics
+- Weights (coefficients) f_{ml} are parameters
+- Store vector of coefficients per grid point
+- Typically k ≤ 3 (≤ 16 coefficients)
+
+**Challenges:**
+- Dense grid requires a lot of memory
+- Solution: Sparse grids using spatial hashing
+- Allocate storage only where needed (non-zero values)
+
 ### Gaussian Splatting (3D Gaussian Splatting)
 
 **Key Paper:** "3D Gaussian Splatting for Real-Time Radiance Field Rendering" (2023)
@@ -392,15 +516,18 @@ Where w_i(r) = 1/β_i(r) (uncertainty weighting)
 - Same volume rendering model as NeRF
 - Color and density: c(r(t)), σ(r(t)) from Gaussian evaluation
 - Ray marching through Gaussians
+- Alpha-blend projected, integrated Gaussians based on densities
 
 **Advantages:**
 - Very fast rendering (real-time)
 - High quality
 - Efficient representation
+- Main benefit: fast rendering
 
 **Training:**
 - Optimize Gaussian parameters (positions, covariances, colors)
 - Adaptive density control (add/remove Gaussians)
+- Efficient ray marching requires spatial data structures
 
 ### Practice Problem 3
 
