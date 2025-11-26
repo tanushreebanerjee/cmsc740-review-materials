@@ -72,9 +72,52 @@ f_r = ρ_d / π
 - f_r(ω_i → ω_o) = δ(ω_o - reflect(ω_i, n))
 
 #### 3. Perfect Specular Refraction
-- Snell's law: n₁ sin θ₁ = n₂ sin θ₂
-- BRDF involves Dirac delta function
-- Total internal reflection when critical angle exceeded
+
+**Snell's Law:**
+```
+n₁ sin θ₁ = n₂ sin θ₂
+```
+
+Where:
+- n₁, n₂: Indices of refraction
+- θ₁: Angle of incidence
+- θ₂: Angle of refraction
+
+**Index of Refraction:**
+- n = c_vacuum / c_medium (speed of light ratio)
+- Examples: Air ≈ 1.00029, Water ≈ 1.33, Glass ≈ 1.49
+
+**Vector Form:**
+- Given incident direction ω_i, normal n, compute refracted direction t
+- Derived from Fermat's principle (light takes path of least time)
+
+**Total Internal Reflection:**
+- When θ₁ > critical angle, Snell's law has no solution
+- All light reflected, none refracted
+- Critical angle: θ_c = arcsin(n₂/n₁) when n₁ > n₂
+
+**Fresnel Equations:**
+- Describe fraction of light intensity reflected vs. refracted
+- Derived from Maxwell's equations (electromagnetic theory)
+- Different versions for dielectrics (insulators) and conductors (metals)
+- Takes into account polarization of light
+- **Schlick approximation:** Common approximation for Fresnel term
+  ```
+  F(θ) ≈ F₀ + (1 - F₀)(1 - cos θ)⁵
+  ```
+  Where F₀ is reflectance at normal incidence
+
+**BRDF for Specular Transmission:**
+- BRDF only non-zero if ω_o is refracted direction given ω_i
+- Involves Dirac delta function δ
+- Includes Fresnel term
+- Cosine term cancels in scattering equation
+
+**Dielectrics vs. Conductors:**
+- **Dielectrics (insulators):** Glass, plastic, water
+  - Light can be transmitted (refracted) into material
+- **Conductors (metals):** Metals
+  - No light transmitted, only reflected
 
 #### 4. Torrance-Sparrow (Microfacet Model)
 ```
@@ -87,7 +130,33 @@ f_r = k_d f_lambert + k_s D(ω_h) F(ω_i, ω_o) G(ω_i, ω_o) / (4 cos θ_i cos 
 
 **Blinn Microfacet Distribution:**
 - D(ω_h) ∝ (cos θ_h)^e where e is shininess coefficient
+- Higher e → more specular (mirror-like)
 - Used for importance sampling specular highlights
+
+**Sampling the Blinn Distribution:**
+1. Sample half-vector ω_h according to D(ω_h)
+   - In spherical coordinates (θ, φ) centered around normal
+   - Given random variables ξ₁, ξ₂:
+     - φ = 2π ξ₂ (uniform azimuth)
+     - cos θ = ξ₁^(1/(e+1))
+   - PDF: p(ω_h) = (e+1)/(2π) (cos θ_h)^e
+
+2. Reflect ω_o around ω_h to get ω_i
+   - ω_i = reflect(ω_o, ω_h)
+
+3. PDF conversion: p(ω_i) = p(ω_h) / (4 ω_o·ω_h)
+   - Accounts for change from half-vector to incident direction
+
+**Masking and Shadowing:**
+- Rough surfaces: microfacets can block reflected light (masking) and shadow incident light
+- Geometry term G(ω_i, ω_o) accounts for this
+- Depends on incident/outgoing angles
+- Derived from simplifying assumptions about microfacet geometry
+
+**Layered Surfaces:**
+- Combine microfacet model (Torrance-Sparrow) with diffuse component
+- Glossy layer on top of diffuse base
+- Physically plausible requires adjustment of diffuse term (see Ashikmin-Shirley model)
 
 #### 5. Phong Model
 - Not physically plausible, may violate energy conservation
@@ -662,6 +731,18 @@ L_s(x, ω) = L_e(x, ω) + σ_s(x) ∫_sphere p(ω' → ω) L_i(x, ω') dω'
 Describes angular distribution of scattered light.
 
 **Isotropic:** p(ω' → ω) = 1/(4π) (uniform)
+
+**Phase Function Examples:**
+
+**Rayleigh Scattering:**
+- Scattering from particles smaller than wavelength
+- Example: Molecules in atmosphere
+- Forward and backward scattering components
+
+**Mie (Lorenz-Mie) Theory:**
+- Scattering by spherical particles
+- More general than Rayleigh
+- Used for larger particles
 
 **Henyey-Greenstein:**
 ```

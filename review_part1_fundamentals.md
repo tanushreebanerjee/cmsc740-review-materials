@@ -40,10 +40,32 @@ for each pixel:
 - Example: 1024×1024 image, 1000 triangles = 10⁹ ray-triangle intersections
 
 **Camera Setup:**
-- **Extrinsic matrix**: Transforms from world to camera coordinates [u v w e]
-- **Intrinsic matrix**: Maps pixel (i,j) to ray in camera coordinates
-- **Viewing frustum**: Defined by vertical field-of-view θ, aspect ratio
-- **Primary rays**: Through pixel centers or random positions within pixels
+
+**Camera Coordinate System:**
+- User parameters: `from`, `to`, `up` vectors
+- Construct basis (u, v, w) for camera coordinates
+- Extrinsic 4×4 matrix [u v w e] transforms from world to camera coordinates
+- Right-handed coordinate system
+
+**Viewing Frustum:**
+- Pyramidal volume containing 3D volume seen by camera
+- Defined by:
+  - Vertical field-of-view θ
+  - Aspect ratio = width/height
+  - Image plane at w = -1 (by convention)
+
+**Primary Ray Computation:**
+1. **Intrinsic matrix K:** Maps pixel (i,j) to ray in camera coordinates
+   - Pixel (i,j) → point (u,v) on image plane
+   - Primary ray: p(t) = (0,0,0) + t·(u, v, -1) in camera coordinates
+2. **Extrinsic matrix:** Transform ray to world coordinates
+   - p_world(t) = [u v w e] · p_camera(t)
+
+**Image Plane Coordinates:**
+- Image resolution: m × n pixels
+- Pixel (i,j) center: u = l + (r-l)(i+0.5)/m, v = b + (t-b)(j+0.5)/n
+- Bounds: t, b, l, r computed from field-of-view and aspect ratio
+- Primary rays can go through pixel centers or random positions within pixels
 
 **Ray-Surface Intersection:**
 - **Implicit surfaces**: f(x,y,z) = 0, solve f(p(t)) = 0
