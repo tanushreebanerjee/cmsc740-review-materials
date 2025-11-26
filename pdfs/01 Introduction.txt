@@ -1,0 +1,1018 @@
+CMSC740
+Advanced Computer Graphics
+Fall 2025
+Matthias Zwicker
+
+Today
+• Course overview
+• Organization
+• Introduction to rendering
+
+2
+
+Computer graphics
+“Algorithms to create and manipulate images”
+
+3
+
+Challenges
+• Modeling, content creation requires intense
+manual work
+•
+
+3D modeling & animation, image & video image
+editing & processing, etc.
+
+• Realistic rendering computationally expensive
+•
+
+Real-time rendering in AR/VR limited to lower quality
+
+•
+•
+
+Feature length movies cost hundreds of millions
+Limited applications of AR/VR
+
+• Currently
+
+4
+
+Research vision
+• AI-based digital media creation
+
+• User provides simple, high-level input
+• AI system fills in details
+
+• Benefits
+
+• Faster, cheaper media creation
+• Democratize visual story-telling: broaden
+access to low-budget producers, like small
+studios and individuals
+• Support and enable new media formats (AR,
+VR, …)
+5
+
+Core areas
+• Rendering: computing images given 3D scene descriptions
+(geometry, light sources, material properties)
+• Modeling: creating 3D scene descriptions (manual, algorithmic,
+reconstruction from measurements/images)
+• Animation: making things move (physics simulation)
+This course
+• First half: rendering (photo-realistic)
+• Second half: modeling
+• Focus on recent neural-network/AI based techniques
+Other graphics courses at UMD
+• CMSC425, Game Programming
+• CMSC427, Computer Graphics (real-time rendering)
+• CMSC498F/838C: Advances in XR (AR/VR)
+• CMSC828X, Physically-based Modeling, Simulation, and Animation
+• CMSC848B, Computational Imaging
+6
+
+Today
+• Course overview
+• Organization
+• Introduction to rendering
+
+7
+
+Organization
+• Class material
+– Course page on UMD Canvas, log in with
+directory ID
+– Piazza for course questions
+– Virtual Study Assistant AI chatbot, configured
+with course materials
+
+• Teaching assistants
+– Haiyang Yin, Yun He, CS PhD students
+
+8
+
+Organization
+• Lectures
+Tuesdays and Thursdays, 2pm-3:15pm,
+IRB 2107
+• Office hours
+– TAs: Mondays, 3-5pm, location TBA
+– Instructor: By appointment (send me email)
+
+9
+
+Grading
+• Programming assignments
+– 40% of final grade
+– Individual projects
+– During first half of course
+
+• Final project
+
+– 40% of final grade
+– Groups of two
+– During second half of course
+
+• Final exam
+
+– 15% of final grade
+
+• Class participation
+– 5% of final grade
+
+10
+
+Policies
+• Standard UMD academic integrity policies
+https://www.studentconduct.umd.edu/academic-dishonesty
+
+• Programming assignments
+– Each student submits own solution (no
+copying, no direct collaboration on code, no
+AI generated code)
+– Penalty for late submission: 50% of original
+score
+– Public posting (github etc.) of solutions
+prohibited
+11
+
+What you should know
+• Programming experience
+in Java, Python, C++, data structures
+(CMSC420)
+• Linear algebra (MATH240)
+– Vectors, matrices, systems of
+linear equations, coordinate
+transformations
+
+• (Basic background in 3D graphics)
+– E.g., Shirley, Fundamentals of
+Computer Graphics
+12
+
+What you should know
+• Mathematics
+
+– Vectors in 3D (dot product, vector product)
+– Matrix algebra (addition, multiplication, inverse,
+determinant, transpose, orthogonal matrices)
+– Coordinate systems (homogeneous coordinates, change of
+coordinates)
+– Transformation matrices (scaling, rotation, translation,
+shearing)
+– Plane equations
+– Systems of linear equations (matrix representation,
+elementary solution procedures)
+
+• Graphics
+
+– Color
+– 3D scene representation (triangle meshes, scene graphs)
+13
+
+Learning objectives
+• Understand and apply mathematical
+concepts and advanced algorithms in
+computer graphics
+– Rendering (rendering equation, Monte Carlo
+integration, path tracing, 3D geometry
+processing, numerical techniques, etc.)
+– Deep learning/AI in computer graphics
+
+• Sharpen your programming skills (python,
+neural network techniques)
+14
+
+Python programming experience
+A. Never used
+B. Beginner (worked with it less than 16
+hours/2 days)
+C. Intermediate (worked with it 16-80
+hours/2-10 days)
+D. Advanced
+
+15
+
+I have trained a neural network
+A. Yes
+B. No
+
+16
+
+I can explain matrix multiplication
+A. Strongly Agree
+B. Agree
+C. Somewhat Agree
+D. Neutral
+E. Somewhat Disagree
+F. Disagree
+G. Strongly Disagree
+
+17
+
+I can explain the concept of the basis of a
+vector space
+A. Strongly Agree
+B. Agree
+C. Somewhat Agree
+D. Neutral
+E. Somewhat Disagree
+F. Disagree
+G. Strongly Disagree
+
+18
+
+Today
+• Course overview
+• Organization
+• Introduction to rendering
+
+19
+
+First half of course
+• 7-week crash course “theory and practice
+of photo-realistic rendering for computer
+graphics”
+
+20
+
+Rendering algorithms
+• Problem statement
+
+– Given computer representation of 3D scene,
+generate image of the scene that would be
+captured by a virtual camera at a given location
+
+• Applications
+
+– Movies, games, design, architecture,
+virtual/augmented reality, visualization, telecollaboration, etc.
+
+21
+
+Challenges
+• „Photo-realism“
+– Realistic simulation
+of light transport
+• Efficiency
+– Thousands of CPU years
+for movie production
+
+22
+
+Challenges
+• Real-time rendering
+– Games, VR, AR (90 frames per second (fps),
+7-15ms motion-to-photon latency)
+– Highly limited computation budget for light
+transport simulation
+
+23
+
+Rendering strategies
+• Two fundamentally different strategies for
+image generation (rendering)
+1. Rendering pipeline (Z-buffering, rasterization)
+2. Ray tracing
+
+• In both cases, most popular
+object representation are
+triangle meshes
+– Data structure: array of x,y,z
+vertex positions; index array
+indicating triplets of vertices
+forming triangles
+24
+
+Rendering pipeline
+https://en.wikipedia.org/wiki/Graphics_pipeline
+
+Input data
+(triangles, etc.)
+Transformation,
+3D-2D projection
+Rasterization
+
+(determine pixels covered by
+triangle)
+
+Shading
+
+(determine pixel colors)
+
+Object order algorithm,
+paint (transform,
+project, rasterize) one
+primitive (usually
+triangle) after another,
+visibility via z-buffer
+(store/compare perpixel depth)
+
+Per-pixel visibility
+(z-buffering), display
+25
+
+Z-buffering
+• Implemented in graphics hardware (ATI,
+NVidia GPUs)
+• Standardized APIs (OpenGL, Direct3D,
+Vulcan)
+• Interactive rendering, AR/VR, games
+• Limited photo-realism
+
+26
+
+Ray tracing
+Output image
+Primary
+
+Imager (loop
+over pixels)
+Primary view ray
+for each pixel
+
+[http://en.wikipedia.org/wiki/Ray_tracing_(graphics)]
+
+Find intersection
+with scene
+Shading (using
+shadow ray)
+
+3D scene
+representation
+
+Image order
+algorithm,
+paint one
+pixel after
+another
+
+27
+
+Ray tracing vs. rasterization
+• Rasterization
+
+– Desirable memory access pattern („streaming“, data locality,
+avoids random scene access)
+– Suitable for real time rendering (OpenGL, DirectX)
+– Full global illumination not possible with purely object order
+algorithm
+
+• Ray tracing
+–
+–
+–
+–
+–
+
+Undesirable memory access pattern (random scene access)
+Requires sophisticated data structures for fast scene access
+Full global illumination possible
+Most popular for photo-realistic rendering
+Recently with hardware support
+https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/technologies/turing-architecture/NVIDIA-Turing-Architecture-Whitepaper.pdf
+
+28
+
+Goal of first half of class
+• Realistic rendering: learn theory and
+practice of light transport simulation for
+computer graphics
+– “Rendering algorithms” based on ray tracing
+– Spatial data structures for ray tracing,
+physics background, rendering equation,
+(quasi) Monte Carlo integration, (multiple)
+importance sampling, Markov Chain Monte
+Carlo sampling, leveraging neural networks,
+etc.
+29
+
+Realistic rendering
+Ray
+tracing
+
+Soft
+shadows
+
+Caustics
+
+Global
+illum.
+
+[Wann Jensen]
+30
+
+Caustics
+
+[Wann Jensen]
+
+http://graphics.ucsd.edu/~henrik/papers/book/
+
+31
+
+Indirect illumination
+
+[Wann Jensen]
+32
+
+Atmospheric effects
+
+[Wann Jensen]
+
+http://graphics.ucsd.edu/~henrik/papers/nightsky/
+
+33
+
+Participating media
+
+[Novak et al.]
+
+http://zurich.disneyresearch.com/~wjarosz/publications/novak12vrls.html
+
+34
+
+Complex materials
+
+Maxwell renderer
+
+http://www.maxwellrender.com/index.php/features
+
+Reflection and transmission
+in a hair fiber
+
+[http://www.cs.cornell.edu/~srm/publications/SG03-hair-abstract.html]
+
+35
+
+Rendering artifacts, noise
+
+Big challenge,
+address with more
+computation time,
+and sophisticatd
+algorithms
+
+Cornell box
+
+http://en.wikipedia.org/wiki/Cornell_Box
+
+36
+
+Recommended book
+• „Physically based rendering“, by
+Pharr, Jakob, Humphreys
+– „Bible“ of realistic rendering
+– Available freely online
+https://www.pbr-book.org/
+
+http://pbrt.org/
+
+– Detailed, useful as reference
+– Includes many advanced concepts
+– With C++ code
+
+37
+
+Ray tracing pseudocode
+rayTrace() {
+construct scene representation
+
+}
+
+for each pixel
+ray = computePrimaryViewRay( pixel )
+hit = first intersection of ray with scene
+color = shade( hit ) // using shadow ray
+set pixel color
+Primary
+
+hit
+
+[http://en.wikipedia.org/wiki/Ray_tracing_(graphics)]
+
+38
+
+Computational complexity of ray tracing
+depends on
+A. Number of pixels in image
+B. Number of triangles in 3D triangle
+meshes
+C. Product of number of pixels and
+number of triangles
+
+39
+
+Computing primary rays
+• Primary rays sometimes called “camera rays”,
+“view rays”
+• Need to define camera coordinate system
+
+– Specifies position and orientation of virtual camera
+in 3D space
+
+• Need to define viewing frustum
+
+– Pyramid shaped volume that contains 3D volume
+seen by camera
+
+• Given an image pixel
+
+1. Determine ray in camera coordinates, intrinsic
+camera matrix
+2. Transform ray to world coordinates (sometimes
+also called “canonic” coordinates), extrinsic
+camera matrix
+40
+
+Camera coordinate system
+Intuitive user provided parameters
+(up, from, to) vectors to place
+camera in world
+Position & orientation
+of virtual camera
+
+Scene object
+World coordinates given by
+x,y,z basis vectors
+41
+
+Camera coordinate system
+Need to construct basis of camera
+coordinate system (u,v,w) based on
+user parameters (up, from, to)
+u,v,w camera
+coordinates
+
+Scene object
+x,y,z world coordinates
+Right handed coordinate systems!
+https://en.wikipedia.org/wiki/Right-hand_rule
+
+42
+
+Camera coordinate system
+• Given from, to, up
+
+Use homogeneous coordinates
+to enable affine
+transformations (including
+rotation, translation) with
+matrix multiplications
+https://en.wikipedia.org/wiki/Transformation_matrix#Affine_transformations
+
+• Extrinsic 4x4
+camera matrix
+[u v w e]
+
+Camera
+coordinates
+Scene object
+World coordinates
+
+43
+
+Viewing frustum
+• 3D volume that is projected within image
+boundaries
+– “Pyramidal cone” that
+contains all camera rays
+
+• Defined by
+
+Viewing
+frustum
+
+– Vertical field-of-view θ
+– Aspect ratio aspect = width/height
+– By convention, image plane at w=-1
+
+44
+
+Viewing frustum
+Vertical
+field-of-view
+
+Image plane,
+at w=-1 by convention
+
+45
+
+From pixel i,j to primary viewing ray
+Vertical
+field-of-view
+Pixel, integer
+index i,j
+
+Image plane
+
+Primary viewing
+ray (in camera
+coordinates)
+
+Intrinsic camera matrix K maps
+pixel coordinates (i,j) to ray in
+camera coordinates
+
+46
+
+Primary rays in camera coords.
+Primary ray
+
+Pixel i,j corresponds to point
+
+Image plane
+
+Caution: origin
+in homogeneous
+coordinates
+
+47
+
+Bounds of image plane t,b,l,r
+• Vertical field-of-view θ
+• Aspect ratio width/height aspect
+• Image coordinates u, v
+
+Top, bottom, left, right
+coords. of image corners
+
+48
+
+Image plane position u,v given pixel index i,j
+• Image resolution m × n pixels
+Pixel (i=m-1, j=n-1)
+
+Pixel (i, j)
+Camera coords. of center of
+pixel i, j
+
+Pixel (i=0, j=0)
+
+by convention
+49
+
+Area of pixl i,j in u,v cords.
+• Image resolution m × n pixels
+Pixel (i=m-1, j=n-1)
+
+Pixel (i, j)
+Square area around pixel i, j
+
+Pixel (i=0, j=0)
+
+Later: want primary ray for pixel through
+any random position within pixel, not
+just pixel center
+50
+
+Primary rays in camera coords.
+• Given location (u,v) on image plane, get
+ray puvw(t) in camera coords. through (u,v)
+
+Intrinsic camera matrix K
+
+Image plane
+51
+
+Transformation to world coords.
+• World coordinates also
+called “canonic” coordinates
+• Basis vectors of camera coords:
+u,v,w,e column vectors
+• Change of basis matrix (camera to world,
+extrinsic camera matrix)
+https://en.wikipedia.org/wiki/Change_of_basis
+
+• Need ray pxyz(t) in world coordinates
+52
+
+Ray tracing pseudocode
+rayTrace() {
+construct scene representation
+
+}
+
+for each pixel
+ray = computePrimaryViewRay( pixel )
+hit = first intersection with scene
+color = shade( hit ) // using shadow ray
+set pixel color
+
+53
+
+Python renderer notes
+• Instead of using loops, code operates on
+tensors
+– Tensors represent entire sets of rays
+
+• Advantages
+– Underlying implementation hides complexity
+of parallelization on multi-core CPUs, GPUs
+
+54
+
+Ray-surface intersection
+• Implicit surfaces
+• Parametric surfaces
+
+55
+
+Implicit surfaces
+
+http://en.wikipedia.org/wiki/Surface#Extrinsically_defined_surfaces_and_embeddings
+
+• Surface defined as set of points p such that
+
+• Implicit representation defines a solid
+– Including the interior volume
+– Not just the surface
+
+56
+
+Implicit surfaces
+• 3D visualization, p=(x,y,z)
+f (x,y,z) = 0
+f (x,y,z) < 0
+
+f (x,y,z) > 0
+
+z
+
+y
+
+x
+
+57
+
+Implicit surfaces
+
+http://en.wikipedia.org/wiki/Surface#Extrinsically_defined_surfaces_and_embeddings
+
+Ray-surface intersection
+• Given a ray with origin e, direction d
+• Ray-surface intersection: solve for t such
+that
+• In general, non-linear equation of variable t
+– Use numerical root-finding algorithm
+http://en.wikipedia.org/wiki/Root-finding_algorithm
+
+– For example, secant method
+http://en.wikipedia.org/wiki/Secant_method
+
+58
+
+Infinite plane
+• Unit normal n, arbitrary point on plane a
+• Plane defined as set of points p where
+• f(p) is distance to plane!
+• Intersection with p(t)
+
+n
+a
+
+p
+p-a
+
+Point on ray
+
+59
+
+Signed distance function (SDF)
+• Implicit representation of surfaces where
+function values happen to represent signed
+distance to closest point on surface
+
+Value of f = signed distance
+to surface
+
+60
+
+Parametric surfaces
+• Parametric surfaces are boundary
+representations (b-reps)
+http://en.wikipedia.org/wiki/Boundary_representation
+
+– „Solid object is given by describing its
+boundary between solid and non-solid“
+
+• In general, surfaces can be described
+either implicitly or parametrically
+
+61
+
+Parametric surfaces
+• Parameters
+, typically in
+rectangular domain
+Point p on surface p = (x,y,z)
+
+• Complicated surfaces require
+fitting together many
+parametric patches (charts)
+http://en.wikipedia.org/wiki/B%C3%A9zier_surface
+
+62
+
+Parametric patches (charts)
+• Visualization
+x = f(0.8,0.7)
+y = g(0.8,0.7)
+z = h(0.8,0.7)
+
+v
+
+z
+
+1
+
+u
+
+y
+
+(u,v) = (0.8,0.7)
+
+v
+x
+
+0
+
+u
+
+1
+
+2D parameter domain,
+quadrilateral patch
+
+63
+
+Parametric surfaces
+• Ray-surface intersection
+Point on ray = point on surface
+
+Ray origin, direction:
+
+• Solve 3 equations for 3 unknowns t, u, v
+• Easy to solve for parametric planes (see raytriangle intersection)
+• Non-linear equation for higher order
+surfaces (e.g., NURBS)
+– Requires iterative solution
+
+64
+
+Ray-triangle intersection
+• Parametric description of a triangle with
+vertices a, b, c (parameters α,β instead of
+a
+u,v)
+
+• Convention: vertices are
+ordered counter-clockwise
+as seen from the outside
+
+c
+b
+
+65
+
+Ray-triangle intersection
+a
+
+• Outward-pointing normal
+c
+
+b
+
+• Triangle in barycentric coordinates α,β,γ
+
+• Given two of the coordinates, can easily
+compute third, e.g. α = 1 − β − γ
+66
+
+Ray-triangle intersection
+• Intersection condition
+Point on ray
+
+Point on triangle
+
+• One equation for each coordinate x,y,z
+
+67
+
+Ray-triangle intersection
+• In matrix form
+
+• Solve for
+using Cramer’s rule
+(Shirley page 157 )
+• Ray intersects triangle if 0 < β +γ < 1
+68
+
+Example: unit sphere
+• Radius 1, centered at origin (0,0,0)
+• Implicit
+– f(x,y,z) = x2 + y2 + z2 - 1
+
+• Parametric
+– Spherical coordinates (polar, azimuthal
+angles) θ, φ
+– x = sin(θ)cos(φ), y = sin(θ)sin(φ), z = cos(θ)
+
+69
+
+What is easier to ray trace, implicit or
+parametric sphere?
+A. Implicit equations
+for sphere
+B. Parametric
+equations for
+sphere
+
+70
+
+Surface normals
+https://en.wikipedia.org/wiki/Normal_(geometry)
+
+• Unit vector perpendicular to tangent plane
+at each point on surface (i.e., surface
+normal is normal of tangent plane at each
+point)
+• Required for shading
+caldulations
+
+Surface normal is
+perpendicular to tangent
+plane at each point
+
+Normal field of curved
+surface
+71
+
+Surface normals
+• How to compute for
+– Parametric surfaces?
+– Implicit surfaces?
+
+72
+
+Surface normals
+• Implicit surfaces: gradient of f
+
+• Parametric surface: cross product
+of tangent vectors (partial derivatives)
+
+73
+
+Transforming Normal Vectors
+• Normal n is perpendicular to tangent t
+• Under transformation Mt, find
+transformation X of normal n that satisfies
+normal constraint
+
+• Note:
+if and only if M includes
+only rotation and translation (no shear)
+74
+
+Rendering assignments
+• Assignments available on UMD
+ELMS/Canvas
+https://myelms.umd.edu
+
+• Extend an educational renderer based on
+Python and tensors
+• First assignment
+– Getting started with base code
+– Deadline: Thursday Sept. 11
+– Turn in via file upload to ELMS/Canvas
+75
+
+Homework policies
+• No public git forks of your homework!
+– Of course, a private git repo on github or
+elsewhere in the cloud is a good idea
+
+• Adhere to the academic integrity policies
+of UMD/UMD CS
+http://osc.umd.edu/OSC/Default.aspx
+http://www.cs.umd.edu/class/resources/academicIntegrity.html
+
+– Discussing homework with colleagues is fine,
+but no sharing of code
+– No copying of code found online
+– No AI generated code
+76
+
+Next
+• Acceleration structures for ray tracing
+• Note: no class session on 9/4, instead
+– Read through slides independently
+– Ask questions to AI chatbot (Canvas Virtual
+Study Assistant, or other one)
+– Submit assignment (most interesting question
+and anwser from AI, in your opinion) on
+Canvas
+
+77
+
+

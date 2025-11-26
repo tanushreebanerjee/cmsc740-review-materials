@@ -1,0 +1,771 @@
+CMSC740
+Advanced Computer Graphics
+Matthias Zwicker
+Fall 2025
+
+Unsupervised, generative models
+• Given: database of objects
+• Goal: mechanism that produces random new
+objects that “look just like objects from the
+database”
+• “Random (Gaussian, uniform) noise -> neural
+network -> object”, where object can be almost
+anything (image, video, 3D shape, text, etc.)
+Random noise
+vector
+
+Neural network to
+compute non-linear
+function
+
+Output
+3D shape
+
+• Applications in graphics: automatically generate
+images, videos, shapes, textures, animations, …
+2
+
+Abstract point of view
+Latent space
+(random noise samples from known,
+simple distribution; uniform or Gaussian)
+Neural
+network
+
+“Real” input
+sample
+
+“Fake” generated
+sample
+
+Objects in database interpreted as
+points in high dimensional space
+(images, shapes, etc.), i.e., samples
+of non-uniform probability density
+
+• Generative model: mechanism (neural network) that maps random
+samples from latent space to points in high dimensional space, such
+that distribution (density) of generated points matches distribution
+of given data
+• Applications: generate arbitrary amounts of new data samples that
+“look like” samples from given data distribution (images, video, 3D
+shapes, text, etc.)
+3
+
+Examples
+
+StyleGan (2018) samples, input distribution
+given by millions of facial images
+https://en.wikipedia.org/wiki/StyleGAN
+
+Stable diffusion (2022), input distribution given
+by hundreds of millions of internet images
+https://en.wikipedia.org/wiki/Stable_Diffusion
+
+In practice, often conditional generative modeling: provide additional input (condition, such
+as text label) to model, which then samples from conditional density; same techniques
+generally apply to unconditional and conditional generative modeling
+
+4
+
+Abstract point of view
+Latent space
+(random noise samples from known,
+simple distribution; uniform or Gaussian)
+Neural
+network
+
+“Real” input
+sample
+
+“Fake” generated
+sample
+
+Objects in database interpreted as
+points in high dimensional space
+(images, shapes, etc.), i.e., samples
+of non-uniform probability density
+
+• Challenge: how to formulate the training objective (loss function)?
+• Notes
+– Difference between generated and true data density quantified using
+divergence (similar to metric, but to quantify similarities/distances of
+probability distributions)
+– Large amount of training data (millions of images, etc.) typically
+necessary to obtain high-quality generative models (empirical neural
+scaling laws)
+
+5
+
+Training objectives
+Alternatives
+• Estimate probability density of true and generated data as continuous
+functions, then minimize difference (divergence) between two densities
+–
+–
+
+Various divergence measures as generalizations of squared Euclidean distance
+“Learning Generative Models using Denoising Density Estimators”, https://github.com/siavashBigdeli/DDE
+
+–
+
+Generative adversarial networks,
+
+–
+–
+–
+
+Maximum likelihood estimation, https://en.wikipedia.org/wiki/Maximum_likelihood_estimation
+Flow-based generative models, https://en.wikipedia.org/wiki/Flow-based_generative_model
+Variational autoencoders (ELBO approximation), https://en.wikipedia.org/wiki/Variational_autoencoder
+
+• Design learning objective that minimizes the divergence between generated
+and input density without explicitly estimating the densities at all
+https://en.wikipedia.org/wiki/Generative_adversarial_network
+
+• Estimate generated density at any location in high dimensional data space,
+then maximize log-likelihood of input data samples produced by generator
+
+• Estimate gradient of density (score) of input data, then use an iterative
+procedure to sample from it
+–
+
+Langevin sampling, https://en.wikipedia.org/wiki/Metropolis-adjusted_Langevin_algorithm, https://github.com/ermongroup/ncsn
+
+–
+
+Diffusion models, https://lilianweng.github.io/posts/2021-07-11-diffusion-models/ (has nice overview of other models
+also)
+Highly related to Langevin sampling
+
+• Design process that iteratively maps input density to simple (Gaussian
+density), then learn to invert it using (approximate) maximum likelihood
+objective
+–
+
+6
+
+Generative Adversarial Nets
+Basic mechanism introduced by Goodfellow
+et al., 2014
+https://papers.nips.cc/paper/5423-generative-adversarial-nets.pdf
+
+7
+
+Generative adversarial networks
+• Generator network to synthesize objects
+Random
+vector
+
+Generator
+
+Generator
+
+Fake image
+
+• Discriminator network to predict whether object is real
+
+{ , }
+Real
+
+Discriminator
+
+“probability(input=real)”
+
+Fake
+
+• Train generator and discriminator simultaneously
+– Generator training objective: maximize “probability(fake input=real)” of
+discriminator
+– Discriminator training objective: minimize “probability(fake
+input=real)”, maximize “probability(real input = real)”
+8
+
+Mathematical formulation
+https://papers.nips.cc/paper/5423-generative-adversarial-nets.pdf
+
+• Generator G, generated object G(z),
+random input z from known density pz
+(uniform, Gaussian)
+• Discriminator D, probability that object x
+is real D(x)
+• Given data density pdata, training objective:
+
+Two-player minimax game,
+optimize parameters of neural networks implementing D, G
+9
+
+Training
+• Expected values in GAN objectives are
+integrals, evaluate using Monte Carlo
+sampling
+– Integrals (expected values) turn into sums over
+samples
+
+• Sampling pdata simply by randomly selecting
+input sample
+• Sampling pz simple, since pz uniform or
+Gaussian
+• Switch between gradient descent steps to
+optimize generator (min in training
+objective), discriminator training (max)
+
+10
+
+Theoretical analysis
+https://papers.nips.cc/paper/5423-generative-adversarial-nets.pdf
+
+• GAN training minimizes Jensen-Shannon
+divergence between generated and given
+data distribution https://en.wikipedia.org/wiki/Jensen%E2%80%93Shannon_divergence
+• Training converges such that generated =
+given distribution under some assumptions
+– Unlimited capacity of networks
+– Unlimited amount of training data
+
+• Annotated proof
+
+https://srome.github.io/An-Annotated-Proof-of-Generative-Adversarial-Networks-with-Implementation-Notes/
+
+11
+
+KL divergence
+• Kullback-Leibler (KL) divergence (discrete
+case) given by relative entropy
+– Set of discrete events X, two different probability
+distributions P, Q for the events x
+
+• Interpretation
+
+– Assume we have optimal code for X under
+distribution Q (optimal code uses fewer bits for
+events with higher probability)
+– KL divergence is number of extra (“wasted”) bits
+used when encoding events distributed according
+to P, in average
+– Not symmetric
+
+• Continuous version: replace sum with integral
+
+12
+
+JS divergence
+• Jensen-Shannon (JS) divergence is symmetrized
+version of KL divergence
+KL
+
+KL
+
+• Square root of JSD is a metric
+– Distance between identical points is zero, otherwise
+always positive, symmetric, triangle inequality
+
+• GAN objective can be modified to minimize other
+metrics, such as Wasserstein distance
+(Kantorovich-Rubinstein metric, earth mover’s
+distance) https://en.wikipedia.org/wiki/Wasserstein_GAN
+13
+
+Proof steps
+• For a given generator width PDF pG, optimal
+discriminator is
+• Plugging DG into V(D,G) get C(G) defined as
+which is 0 only when pG = pdata
+• When pG converges to pdata, optimal discriminator
+becomes
+• Hence, at optimum of V(D,G), pG = pdata, D*G=1/2
+• Separate proof for convergence of training
+procedure
+14
+
+GAN applications
+• Original GAN paper [Goodfellow et al.
+2014] showed image generation
+• Applications to many other types of data
+–
+–
+–
+–
+–
+–
+
+Video
+Shapes/3D models
+Audio
+Text
+Medical data
+Etc.
+15
+
+ShapeGAN
+• “Learning a Probabilistic Latent Space of
+Object Shapes via 3D GenerativeAdversarial Modeling”, Wu et al., NIPS
+2016,
+http://3dgan.csail.mit.edu/
+
+Latent
+space
+
+Generator
+(Convolutions on
+3D voxel grid, upsampling)
+
+Discriminator
+(Convolutions on
+3D voxel grid,
+downsampling)
+{real, fake}
+
+16
+
+Results
+
+http://3dgan.csail.mit.edu/
+
+• Trained on ShapeNet
+Randomly generated shapes
+
+Nearest neighbor
+in training database
+
+http://3dgan.csail.mit.edu/
+17
+
+GAN pros/cons
+• Pros
+– Theoretical guarantees to obtain generator for input data
+distribution
+– Conceptually simple formulation and training
+– Fast sample generation (no iteration required)
+
+• Cons
+
+– Training convergence unstable in practice
+– Requires manual hyper-parameter tuning
+– Tends to produce “mode collapse” (favors sample quality over
+diversity of samples)
+
+• Note: theory of GANs isn’t specific to using neural networks as
+generators, discriminators
+• Much recent research on various improvements (different
+discriminator/generator architectures, ways to feed random
+input into generator, other divergence metrics)
+– For example, StyleGAN3, NeurIPS 2021 https://github.com/NVlabs/stylegan3
+
+• Illustrative animations of GAN training:
+
+https://poloclub.github.io/ganlab/
+18
+
+Diffusion Models
+Basic mechanism introduced by SohlDickstein et al., 2015
+https://arxiv.org/pdf/1503.03585.pdf
+
+19
+
+Diffusion models
+• Basic idea: define forward diffusion process that
+iteratively maps input density to simple density
+(Gaussian) by adding noise, then learn to invert it
+Forward diffusion, iteratively adding Gaussian noise to data points
+
+Zero-mean
+Gaussian
+distribution
+
+Input data
+distribution
+q
+
+Input data
+density q(x0)
+20
+
+Diffusion models
+• Basic idea: define forward diffusion process that
+iteratively maps input density to simple density
+(Gaussian) by adding noise, then learn to invert it
+Forward diffusion, iteratively adding Gaussian noise to data points
+
+Zero-mean
+Gaussian
+distribution
+
+Input data
+distribution
+q
+
+Generated
+data
+
+Input data
+density q(x0)
+Reverse diffusion, learned
+
+Zero-mean
+Gaussian
+distribution
+
+21
+
+Forward diffusion
+
+Forward diffusion, iteratively adding Gaussian noise to data points (e.g., images)
+
+• Forward diffusion defined as adding Gaussian noise
+N with given variance βt in each time step t Diagonal
+mean
+
+covariance covariance,
+independent noise
+at each pixel
+Shrink mean towards 0
+
+• Joint distribution of entire forward trajectory x1:T
+
+22
+
+Reverse diffusion
+Reverse diffusion, learned
+
+Forward diffusion, iteratively adding Gaussian noise to data points
+
+• Need to know conditional probability pθ(xt-1| xt) of reverse diffusion
+step; by sampling pθ(xt-1| xt) we can make backward steps
+
+• Key observation: if noise βt small enough, reverse diffusion pθ(xt-1| xt)
+has same form has forward step, here Gaussian (Feller, 1949)
+• But mean µθ is unknown at this point (will be able to compute
+variance Σθ explicitly)
+• Goal of training: generator network with parameters θ will be
+trained to predict mean µθ in each step t
+23
+
+Reverse diffusion
+• Joint density of entire reverse trajectory
+using generator with parameters θ
+For T -> infinity, isotropic Gaussian distribution
+
+• Marginal density pθ(x0) of generated output
+data x0 using generator with parameters θ
+=
+
+=
+
+Integrate
+over all
+steps along
+reverse
+diffusion
+
+• Given generator with fixed parameters θ,
+pθ(x0) is well defined, but integral is
+intractable to compute in practice (extremely high
+dimensional)
+
+24
+
+Generated output density
+• Intuition: (marginal) output density pθ(x0) for
+each output x0 is integral over all backward
+trajectories starting from Gaussian distributed
+xT and ending up at x0
+=
+
+=
+Trajectory from
+time T back to 0
+
+25
+
+Generated output density
+• Intuition: (marginal) output density pθ(x0) for
+each output x0 is integral over all backward
+trajectories starting from Gaussian distributed
+xT and ending up at x0
+=
+
+=
+Trajectory from
+time T back to 0
+
+x0
+
+t=0
+Output
+density
+pθ(x0)
+
+xt
+
+xt-1
+
+…
+t-2
+
+t-1
+
+t
+
+Reverse
+diffusion step
+
+xT
+
+…
+t=T
+
+Gaussian
+p(xT)
+26
+
+Generated output density
+• Intuition: (marginal) output density pθ(x0) for
+each output x0 is integral over all backward
+trajectories starting from Gaussian distributed
+xT and ending up at x0
+=
+
+=
+Trajectory from
+time T back to 0
+
+x0
+
+t=0
+Output
+density
+pθ(x0)
+
+…
+
+Integrate
+over all
+trajectories
+
+xt
+
+xt-1
+
+t-2
+
+t-1
+
+t
+
+Reverse
+diffusion step
+
+xT
+
+…
+t=T
+
+Gaussian
+p(xT)
+27
+
+Training objective
+• Minimize negative log-likelihood (i.e.,
+maximize likelihood) of generated output
+data
+– “The density of generated data, evaluated
+where the input data is [to estimate expected value],
+should be as high as possible” (density of input
+data denoted q)
+– “Randomly select set of training data points x0
+[for Monte Carlo estimation of Eq(x0)], evaluate
+their density under the current generator
+pθ(x0), and minimize sum of negative logs”
+(equivalent to maximizing sum of densities)
+28
+
+Training objective
+• Goal: Train generator θ to predict
+Gaussian distributions (means µθ) in each
+step t
+
+to minimize negative log-likelihood
+
+=
+
+(
+
+)
+
+In theory, could
+optimize this
+directly over
+generator
+parameters θ, but
+integral not
+tractable in
+practice
+29
+
+Practical training objective
+• For practical training, need to
+approximate training objective based on
+negative log-likelihood
+• Here, approach based on “Denoising
+Diffusion Probabilistic Models”, 2020
+https://arxiv.org/pdf/2006.11239.pdf
+
+30
+
+Practical training objective
+• After some math and approximations, find that
+minimizing negative log-likelihood can be achieved
+by minimizing KL divergence
+Desired inverse
+diffusion step
+
+where q(xt | xt+1, x0) is Gaussian with
+known parameters
+• “If we knew original image x0, then we could know
+which image xt-1 most likely produced xt in forward
+diffusion step”; would allow us to make inverse step
+• However, during reverse diffusion, x0 unknown,
+cannot use q(xt | xt+1, x0) directly in reverse diffusion
+31
+
+Visualization
+Most likely image that produced xT+1
+
+Gaussian q
+
+Samples of q
+
+x0
+
+xt+1
+Forward diffusion, known distributions
+Minimize
+
+)
+
+Key observation: KL is minized when mean µθ of pθ minimizes L2 distance to mean of
+q; achieved by minizing L2 distance between samples of q and mean µθ of pθ
+
+Gaussian pθ
+Samples of q
+
+µθ
+
+xt+1
+
+Reverse diffusion, distribution pθ of reverse step to be learned
+32
+
+Minimizing KL divergence
+• Minimizing KL divergence means minimizing
+prediction error for mean, over all input data
+x0 and noise vectors ε
+Loss to be
+minimized
+
+Known
+
+Predicted by
+generator
+
+• “For all input images x0 and noise ε, train
+generator µθ to denoise image xt, which
+predicts mean
+“
+
+33
+
+Minimizing KL divergence
+• Paper shows: predicting denoised image (i.e., sample of
+q) is equivalent to predicting noise εt that was added
+Known noise εt
+applied in
+forward diffusion
+
+Known noise εt applied
+to input data x0
+
+Lt =
+Minimize loss wrt.
+parameters θ
+
+Noise predicted by
+generator network, parameters θ
+
+Variances used in forward diffusion
+
+Noisy input
+image at time t
+
+Gaussian noise
+
+34
+
+Summary
+• Approximation of training objective
+(minimizing negative log-likelihood of
+generated data density) can be achieved
+by training noise prediction network εθ
+• Training
+– Construct noisy data by adding known noise
+vectors to clean data points, noise magnitudes
+(variance) given by time t
+– Given noisy inputs, time t, train network
+εθ (noisy image, t) to predict noise
+35
+
+Training & sampling algorithms
+
+// randomly select input image
+
+Simplified training objective,
+works better in practice
+
+Variances used in forward diffusion
+
+36
+
+Training & sampling algorithms
+
+// randomly select input image
+
+// start with Gaussian noise image
+
+subtract
+add new
+predicted noise noise
+
+Simplified training objective,
+works better in practice
+
+Variances used in forward diffusion
+
+Sample Gaussian pθ(xt-1 | xt), different
+choices for σt in practice, such as σt2= βt
+
+37
+
+Educational 2D model
+https://github.com/tanelp/tiny-diffusion
+
+Forward
+
+Backward
+
+38
+
+Results
+Gaussian
+noise
+
+Reverse diffusion steps by sampling pθ(xt-1 | xt)
+
+Input data
+distribution
+
+Different end points of reverse trajectories starting at different t
+
+39
+
+

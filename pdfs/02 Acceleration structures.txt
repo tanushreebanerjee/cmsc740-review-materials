@@ -1,0 +1,1229 @@
+CMSC740
+Advanced Computer Graphics
+Fall 2025
+Matthias Zwicker
+
+Ray tracing pseudocode
+rayTrace() {
+construct scene representation
+
+}
+
+for each pixel
+ray = computePrimaryViewRay( pixel )
+hit = first intersection with scene
+color = shade( hit ) // using shadow ray
+set pixel color
+
+2
+
+Cost of naïve approach
+• For each ray, the cost is linear in the
+number of primitives (triangles) in the
+scene
+• Complexity Θ(n) per ray, n primitives
+• Total cost: objects*rays
+Example
+• 1024x1024 image, 1000 triangles
+• 10^9 ray triangle intersections
+3
+
+Ray tracing acceleration techniques
+Fast intersections
+Faster ray-object
+intersection tests
+
+Fewer ray-object
+intersection tests
+
+Generalized rays
+• Beam tracing
+http://en.wikipedia.org/wiki/Beam_tracing
+
+• Cone tracing
+
+http://en.wikipedia.org/wiki/Cone_tracing
+
+•
+
+Efficient numerical
+intersection algorithms
+• Code optimization
+(vector instructions,
+multi-threading, GPU
+http://en.wikipedia.org/wiki/OptiX
+
+)
+
+• „Acceleration
+structures“
+• Bounding volume
+hierarchies
+• Space subdivision
+
+4
+
+Acceleration structures
+• Goal: “sub-linear” complexity
+– Number of intersection tests grows more
+slowly than proportional to number of
+primitives
+– Logarithmic complexity: Θ(lg n)
+
+• Don’t touch every single object (i.e.,
+triangle)
+
+5
+
+Spatial data structures
+• Enable efficient operations on data organized in a
+metric space
+
+– „Metric space“: can make distance measurements
+– Operations: intersection tests, search queries based on
+proximity, etc.
+
+• Applications
+
+– Ray tracing (rendering), acceleration structure = spatial
+data structure
+– Collision detection (phyiscs simulations)
+– Chemical simulations
+– Machine learning (nearest neighbor queries)
+– Data analysis
+– …
+
+• Detailed background in ”Foundations of
+Multidimensional and Metric Data Structures”
+http://books.google.dk/books?id=KrQdmLjTSaQC
+
+6
+
+Acceleration structures: ideas?
+
+7
+
+Acceleration structures
+• Two types
+1. Object subdivision
+– Bounding volume hierarchies (BVHs)
+
+2. Spatial subdivision
+– Uniform, hierarchical grids
+– Octrees
+– Binary space partitioning (BSP) trees, kdtrees
+
+8
+
+Object subdivision
+• Hierarchies of groups of objects
+• Groups are represented by their bounding
+volumes
+
+– Bounding volume: simple geometry that encloses
+all objects in a group, allows fast ray
+intersection computation (for example: axis
+aligned boxes, spheres, etc.)
+
+• “Bounding volume hierarchies”, BVH
+http://en.wikipedia.org/wiki/Bounding_volume_hierarchy
+
+• Logarithmic complexity Θ(lg n) to find
+intersection
+
+– Depth of BVH hierarchy is logarithmic in terms of
+number of objects n
+9
+
+Bounding volume hierarchies
+• Tree structure
+• Leave nodes contain objects (e.g.
+triangles)
+• Each internal node is bounding volume
+Bounding volume
+
+How to determine
+bounding volume of
+internal nodes?
+
+10
+
+Bounding volume hierarchies
+• Bounds of each bounding volume contain
+all objects in its subtree
+Parent node
+bounding volume:
+required to
+enclose children,
+should be as small
+as possible
+Leave node
+encloses all
+objects in
+it
+
+11
+
+Bounding volume hierarchies
+• Subtrees can overlap spatially
+– Not all objects within the bounding volume
+of a node need to be in its own subtree
+
+• Subtrees are not ordered in any way
+
+Spatial overlap
+
+12
+
+BVH construction
+• Partitioning objects along coordinate axes in
+a top-down fashion, starting at root
+– Other strategies (e.g., bottom-up) possible
+http://en.wikipedia.org/wiki/Bounding_volume_hierarchy
+
+• Partitioning strategies, alternatives
+– In geometric middle
+– Into equal nr. of objects
+– Equal surface area
+
+• Partitioning nodes into
+two children
+results in binary tree
+13
+
+BVH intersection
+• If bounding volume of node is not
+intersected by a ray, none of the objects
+in its subtree are
+– Subtree can be pruned (ignored) during
+intersection testing
+
+• If node is intersected, all children have to
+be tested for intersections recursively
+
+14
+
+BVH intersection
+• Types of bounding volumes
+http://en.wikipedia.org/wiki/Bounding_volume
+
+– (Axis aligned) bounding boxes (AABB)
+– Bounding spheres
+– Bounding anything
+
+• BVH with axis aligned bounding boxes
+(AABB) are popular because of efficient
+intersection testing
+
+15
+
+BVHs are always binary trees
+A. True
+B. False
+
+16
+
+Leaf nodes in a BVH always contain a
+single object (triangle)
+A. True
+B. False
+
+17
+
+Today: acceleration structures
+• Introduction
+• Two types
+1. Object subdivision
+– Bounding volume hierarchies (BVHs)
+
+2. Spatial subdivision
+– Uniform, hierarchical grids
+– Octrees
+– Binary space partitioning (BSP) trees, kdtrees
+18
+
+Spatial subdivision
+Main idea
+• Partition space into non-overlapping cells
+• Each cell stores reference to all objects
+that overlap it
+
+19
+
+Uniform grid
+• Each cell stores ref. to all objects in it
+
+20
+
+Uniform grid
+• Traverse grid along ray
+
+21
+
+Uniform grid
+• For each cell, intersect all objects in cell
+
+22
+
+Uniform grid: disadvantages?
+
+?
+23
+
+Uniform grid
+• Advantages
+– Can traverse ray along grid (front to back)
+– Can stop as soon as a hit is found
+
+• Disadvantages
+– “Teapot in a stadium” problem: no good
+uniform grid size
+– Potentially intersect
+same object multiple
+times
+
+24
+
+Hierarchical grid
+
+“Adaptive voxel subdivision for ray tracing”, 1989
+25
+
+Octree
+
+http://en.wikipedia.org/wiki/Octree
+
+• Special case of hierarchical grid
+• Analogous to quadtree in 2D
+• Recursively split each cubic cell (at its center)
+into 8 equally sized cubic cells
+
+Quadtree
+
+Octree
+26
+
+Octrees are binary trees
+A. True
+B. False
+
+27
+
+Octrees implement the best possible space partitioning
+because space is divided into equally sized child nodes
+
+A. True
+B. False
+
+28
+
+Binary space partitioning (BSP) trees
+http://en.wikipedia.org/wiki/Binary_space_partitioning
+
+• Main idea
+– Recursively divide space into two parts using
+dividing planes (with arbitrary position,
+orientation)
+
+• Special case: k-d-trees
+– Dividing planes are axis aligned
+http://en.wikipedia.org/wiki/Kd-tree
+
+29
+
+k-d tree example
+• Stopping criterion: subdivide until fewer
+than 3 objects in node
+• Convention for children in binary tree
+– Left child “below” split plane (smaller
+coordinates along split axis)
+– Right child “above” split plane (larger
+coordinates along split axis)
+
+• Typically, cycle through splitting axis
+from one hierarchy level to next
+30
+
+k-d tree example
+
+1
+
+3
+
+2
+
+4
+5
+
+6
+8
+7
+
+9
+
+0
+31
+
+k-d tree example
+A
+1
+
+3
+
+2
+
+A
+
+Split along x-axis
+
+4
+5
+
+6
+8
+7
+
+9
+
+0
+32
+
+k-d tree example
+A
+1
+
+3
+
+2
+
+A
+
+Split along x-axis
+
+4
+B
+
+B
+
+Split along
+y-axis
+
+5
+
+6
+8
+7
+
+9
+
+0
+33
+
+k-d tree example
+A
+1
+
+3
+
+2
+
+A
+
+Split along x-axis
+
+4
+B
+
+B
+
+Split along
+y-axis
+
+5
+
+6
+
+3,4
+Stopping criterion
+reached, leaf node
+
+8
+7
+
+9
+
+0
+34
+
+k-d tree example
+A
+1
+
+3
+
+2
+
+A
+4
+B
+5
+
+6
+
+C
+
+8
+7
+
+B
+C
+
+3,4
+
+9
+
+0
+35
+
+k-d tree example
+A
+1
+
+3
+
+2
+
+A
+4
+B
+5
+
+6
+
+C
+
+8
+7
+
+B
+
+9
+
+C
+
+3,4
+5,6
+
+0
+36
+
+k-d tree example
+A
+1
+
+3
+
+2
+
+A
+4
+B
+
+B
+5
+
+6
+
+C
+
+8
+7
+
+9
+
+C
+9
+
+3,4
+5,6
+
+0
+37
+
+k-d tree example
+A
+1
+
+3
+
+2
+
+A
+4
+B
+
+B
+
+5
+
+6
+D
+
+C
+
+8
+7
+
+D
+
+9
+
+C
+9
+
+3,4
+5,6
+
+0
+38
+
+k-d tree example
+E
+1
+
+A
+3
+
+2
+
+A
+4
+B
+
+B
+
+5
+
+6
+D
+
+C
+
+8
+7
+
+D
+
+9
+
+E
+
+C
+9
+
+3,4
+5,6
+
+0
+39
+
+k-d tree example
+E
+1
+
+A
+3
+
+2
+
+A
+4
+B
+
+B
+
+5
+
+6
+D
+
+C
+
+8
+7
+
+D
+
+9
+
+E
+
+C
+
+3,6 9
+
+3,4
+5,6
+
+0
+40
+
+k-d tree example
+E
+1
+
+A
+3
+
+2
+
+A
+4
+B
+
+B
+
+5
+
+6
+D
+
+C
+
+8
+7
+
+D
+
+9
+
+E
+
+C
+
+1,2 3,6 9
+
+3,4
+5,6
+
+0
+41
+
+k-d tree example
+E
+1
+
+A
+3
+
+2
+
+A
+4
+D
+
+B
+5
+
+6
+D
+
+C
+
+8
+7
+
+B
+
+9
+
+7,8
+
+E
+
+C
+
+1,2 3,6 9
+
+3,4
+5,6
+
+0
+42
+
+k-d tree construction
+• Goal: construct tree that minimizes
+rendering cost
+– Minimize expected number of intersection
+tests
+
+• Parameters to optimize?
+• Details see PBRT book, Section 4.4
+http://pbrt.org/index.html
+
+43
+
+Traversing a kd-tree is faster than traversing an octree,
+because each node has fewer children (2 vs. 8)
+
+A. True
+B. False
+
+44
+
+Tree traversal & intersection testing
+• “Front-to-back” traversal
+– Traverse child nodes in order (front to back)
+along rays
+
+• Stop traversing as soon as first surface
+intersection is found
+– Advantage over BVHs, where this is not
+possible
+
+• Maintain own stack of subtrees to
+traverse
+– More efficient than recursive function calls
+45
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+A
+
+Stack
+
+9
+
+46
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+D
+
+Stack
+B
+
+9
+
+47
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+E
+
+Stack
+B
+
+9
+
+48
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+9
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+1,2
+
+Stack
+B
+3,6
+
+49
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+3,6
+
+Stack
+B
+
+9
+
+50
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+B
+
+Stack
+
+9
+
+51
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+3,4
+
+Stack
+C
+
+9
+
+52
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+C
+
+Stack
+
+9
+
+53
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+5,6
+
+Stack
+
+9
+
+54
+
+Tree traversal
+A
+A
+
+E
+1
+
+3
+
+2
+
+D
+4
+5
+
+6
+
+D
+
+B
+C
+
+8
+7
+
+7,8
+
+B
+E
+
+C 3,4
+
+1,2 3,6 9 5,6
+Process
+5,6
+
+Stack
+
+9
+
+55
+
+Note
+• Python renderer relies on Open3D for
+acceleration ray-triangle mesh
+intersections
+http://www.open3d.org/docs/latest/tutorial/geometry/ray_casting.html
+
+56
+
+Next time
+• Physical models for light and light
+transport
+
+57
+
+

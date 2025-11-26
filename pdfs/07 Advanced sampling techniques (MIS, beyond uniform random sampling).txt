@@ -1,0 +1,311 @@
+CMSC740
+Advanced Computer Graphics
+Fall 2025
+Matthias Zwicker
+
+Overview
+Advanced sampling techniques
+• Surface form of hemispherical integrals
+• Multiple importance sampling
+• Beyond uniform pseudo random numbers
+
+2
+
+Reflection equation
+• So far: directional form of reflection
+equation
+• Integration over solid angle
+
+3
+
+Surface form
+• Integration over surface elements
+instead of solid angle
+
+4
+
+Change of integration variables
+• Solid angle spanned by differential
+surface element dA at location x’ with
+normal n’
+where
+
+5
+
+Surface form
+• Reflection integral over all visible surface
+elements
+
+where
+
+ψ
+
+6
+
+Surface form
+• Reflection integral over all surfaces using
+visibility function
+Geometry term
+
+where the visibility function is
+
+7
+
+Overview
+Advanced sampling techniques
+• Surface form of hemispherical integrals
+• Multiple importance sampling
+• Beyond uniform pseudo random numbers
+
+8
+
+Sampling direct illumination
+• How to best distribute samples?
+Area light
+
+ωh n
+ωo
+
+Area light
+
+ωh n
+
+ωi
+
+ωi
+
+ωo
+
+9
+
+BSDF vs. are light sampling
+• Importance sample the BSDF: place more
+samples where BSDF is large
+• Importance sample the light source: place
+more samples where emission is large (nonzero)
+
+10
+
+BSDF vs. are light sampling
+A. It is better to importance
+sample using the BSDF
+B. It is better to importance
+sample the light source
+
+Area light
+
+ωh n
+
+ωi
+
+ωo
+
+11
+
+BSDF vs. are light sampling
+A. It is better to importance
+sample using the BSDF
+B. It is better to importance
+sample the light source
+
+Area light
+
+ωh n
+
+ωi
+
+ωo
+
+12
+
+Sampling direct illumination
+Sampling according
+to the light (importance
+sampling light source areas)
+
+Sampling according
+to the BSDF (importance
+sampling the BSDF)
+
+Glossy
+
+Diffuse
+
+[Veach, Guibas]
+13
+
+Which sampling technique?
+• Importance sample light source (area form)
+PDF proportional
+to emission
+
+Geometry term
+
+• Importance sample BSDF (directional form)
+PDF proportional to BSDF
+14
+
+Multiple importance sampling (MIS)
+• Naive approach: use both sampling techniques and average,
+that is, (Fa+Fd)/2
+– Variance is bounded by larger variance of two techniques
+
+• MC estimator F with multiple importance sampling
+
+– Weighted average, with weights that reduce variance in optimal
+way
+– n sampling techniques pi, weights wi
+– N samples from each technique, j-th sample of i-th technique Xi,j
+
+N samples Weighted average
+of n techniques
+Requirement: partition of unity
+15
+
+Multiple importance sampling (MIS)
+• Unbiased estimator of integral, as before!
+• Weights for provable variance reduction
+– Balance heuristics
+
+– Power heuristics
+
+• Details, proofs
+
+http://graphics.stanford.edu/papers/veach_thesis/thesis.pdf
+
+16
+
+Multiple importance sampling
+Naïve sampling
+
+Optimal sampling
+
+Same number of samples
+
+[Veach, Guibas]
+17
+
+Implementation
+• Multiple importance sampling for making
+connection to light source (shadow rays,
+also called “next event estimation”) is
+simple extension of standard unidirectional
+path tracing
+• Take two samples for each next event
+estimation
+
+– One by sampling the BRDF/BSDF (next randomly
+sampled ray direction)
+– One by sampling the light
+– Combine using MIS weights
+18
+
+Implementation
+• For MIS weights wi, need to compute
+probability densities of taking each
+sample with both techniques
+• Need to express both densities in same
+parameterization (surface area or solid
+angle)
+psolid angle = parea / cos * r^2
+
+19
+
+Overview
+Advanced sampling techniques
+• Surface form of hemispherical integrals
+• Multiple importance sampling
+• Beyond uniform pseudo random numbers
+
+20
+
+Observation
+• Sample distributions from uniform random
+numbers can have large gaps and dense clusters
+• „Sample space is covered quite non-uniformly“
+– Leads to variance in Monte Carlo estimates
+
+2D samples from uniform random numbers
+21
+
+Stratified sampling
+• Intuitition: clumping of samples is bad
+• Instead of canonic uniform random
+variables, generate variables in strata
+– One sample per stratum
+– Everything else stays the same
+Clumping
+Uniform
+
+Stratum
+Stratified
+22
+
+Jittered sampling
+• Stratification using uniform grid
+• „Jittered“ sample randomly in each cell
+• Not suitable for higher dimensions (curse of
+dimensionality)
+Uniform
+
+Jittered
+
+23
+
+Comparison
+• Sampling glossy reflection
+Uniform
+
+Stratified
+
+[Pharr, Humphreys]
+24
+
+Other stratified sampling patterns
+• N-rooks (Latin hypercube) sampling
+http://en.wikipedia.org/wiki/Latin_hypercube_sampling
+
+– Advantage over jittered grid: can generate any
+number n of samples, not restricted to
+n x m grid
+
+• Quasi-Monte Carlo
+
+http://en.wikipedia.org/wiki/Quasi-Monte_Carlo_method
+
+– Based on low-discrepancy instead of pseudo-random
+samples
+http://en.wikipedia.org/wiki/Low-discrepancy_sequence
+
+– Low-discrepancy sequences have more uniform
+distribution of points, less clumping, also in higher
+dimensions
+– Can show theoretically that convergence improves
+25
+
+Low-discrepancy sequences
+• First 100 points of 2D sequences
+
+http://en.wikipedia.org/wiki/Constructions_of_low-discrepancy_sequences
+
+Halton sequence
+
+Hammerseley sequence
+26
+
+Note on implementation
+• Any of the improved sampling sequences
+(jittered, Latin hypercube, lowdiscrepancy) yield sequences of points
+(ξ1, ξ2, ... ξn) in unit hypercube [0,1]n
+• Can directly substitute these for pseudorandom points (ξ1, ξ2, ... ξn)
+– No need to change rest of implementation
+
+27
+
+Next time
+• Generalized path sampling (three-point
+form or rendering equation, BDP)
+
+28
+
+

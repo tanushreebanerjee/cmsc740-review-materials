@@ -1,0 +1,703 @@
+CMSC740
+Advanced Computer Graphics
+
+Fall 2025
+Matthias Zwicker
+
+Today
+Participating media
+• Introduction
+• Light interaction with participating media
+• Volume rendering equation
+• Approximations & rendering algorithms
+• Subsurface scattering
+
+2
+
+Participating media
+• So far: light reflection on surfaces, BRDFs
+• What about interaction of light with
+volumetric media?
+• Also called “scattering media”
+
+3
+
+Participating media
+
+4
+
+Subsurface scattering
+
+5
+
+Participating media
+Applications
+• Clouds, smoke, water, fire, …
+• Paint, skin,…
+• Scientific/medical volume visualization
+(CT, MRI, etc.)
+
+6
+
+Participating media
+• Before: „Radiance along straight rays
+through volume is constant“
+• Participating media: volumetric media
+influence radiance along rays
+– What are types of interaction between media
+and light rays?
+
+7
+
+Today
+•
+•
+•
+•
+•
+
+Introduction
+Light interaction with participating media
+Volume rendering equation
+Approximations & rendering algorithms
+Subsurface scattering
+
+8
+
+Change of radiance along ray?
+• What are the causes for radiance change dL
+along ray x,ω?
+
+• Note: all phenomena in following slides are
+wavelength dependent; omitted in notation
+9
+
+Absorption
+
+• Absorption coefficient
+
+– Material property
+– Related to absorption cross section
+http://en.wikipedia.org/wiki/Absorption_cross_section
+
+– Rate of absorption, units are 1/meter
+– “Probability per unit length that photon is
+absorbed”
+
+10
+
+Out-scattering
+
+• Scattering coefficient
+– Rate of being scattered, units are 1/meter
+– Related to scattering cross section
+http://en.wikipedia.org/wiki/Scattering_cross-section
+
+– “Probability per unit length that photon is
+scattered into different direction”
+
+11
+
+Extinction
+
+• Extinction: sum of absorption and outscattering
+– Extinction coefficient
+12
+
+Extinction
+
+[Pharr, Humphreys]
+13
+
+Scattering coefficient of milk is larger
+than the one of the atmosphere
+A. True
+B. False
+
+14
+
+Transmittance
+• “Fraction of light transported over a
+certain distance along a ray”
+
+• Optical thickness
+• Transmittance
+15
+
+Transmittance T(s)
+
+T(s)
+
+ω
+
+x+sω
+
+x
+
+L(x+sω, ω)
+
+L(x,ω)
+
+16
+
+Transmittance
+• Multiplicative property
+
+• Homogeneous media
+Beer’s law
+
+http://en.wikipedia.org/wiki/Beer%E2%80%93Lambert_law
+
+17
+
+In-scattering
+• “Incoming light from all directions that is
+scattered into one given direction”
+
+• Phase function
+18
+
+Phase functions
+• Phase function
+is probability
+that incoming light from direction
+is
+scattered into direction
+
+• Expressed using phase angle
+• Isotropic
+19
+
+Phase function
+• Similar to BRDF, phase function is
+aggregate model of scattering
+• Abstracts away more detailed physical
+model
+
+20
+
+Phase functions: examples
+• Rayleigh scattering: scattering from
+particles smaller than wavelength of light
+– For example, molecules in atmosphere
+– Details see, e.g., wikipedia
+http://en.wikipedia.org/wiki/Rayleigh_scattering
+
+• Mie (Lorenz-Mie) theory: scattering by
+spherical particles (Mie scattering)
+http://en.wikipedia.org/wiki/Mie_theory
+
+21
+
+Sky would be brighter if there were no
+scattering in atmosphere
+A. True
+B. False
+
+22
+
+Sky is blue because blue light scatters less in atmosphere
+(lower scattering coefficient) than other wavelengths
+
+A. True
+B. False
+
+23
+
+Blue sky, red sunset
+
+[Greenler]
+
+24
+
+Henyey-Greenstein phase function
+• Empirical phase function
+• Useful for many phenomena (water, clouds,
+skin, stone)
+
+• Pareameter : average phase angle, asymmetry
+parameter
+
+Backward scattering
+
+Forward scattering
+25
+
+Phase functions: properties
+• Unitless
+• Reciprocity
+
+• Energy conservation
+
+• Amount (rate) of scattering controlled by
+26
+
+Today
+•
+•
+•
+•
+•
+
+Introduction
+Light interaction with participating media
+Volume rendering equation
+Approximations & rendering algorithms
+Subsurface scattering
+
+27
+
+The volume rendering equation
+• Integro-differential form
+– Describes change of raradiance along a ray
+Extinction In-scattering
+
+• Integro-integral form
+– Describes radiance arriving at a point along a ray
+
+Transmittance T(s’) due to extinction
+(absorption, out-scattering)
+
+Source (emission,
+in-scattering)
+28
+
+Integro-integral form
+
+Transmittance T(s’) due to extinction
+(absorption, out-scattering)
+
+T(s’)
+
+L(x,ω)
+
+ω
+
+x
+
+S(x-s’ω, ω)
+s’
+
+Source (emission,
+in-scattering)
+
+s
+
+29
+
+The volume rendering equation
+• If there is scattering in volume and on
+surfaces, both contributions simply add
+up
+• Surface reflection attenuated with
+transmittance
+
+30
+
+The volume rendering equation
+• Full solution via Monte Carlo path tracing
+expensive to compute
+• Rendering with simplified models
+• Most common approximations
+– Emission/absorption only
+– Single scattering
+
+31
+
+Today
+•
+•
+•
+•
+•
+
+Introduction
+Light interaction with participating media
+Volume rendering equation
+Approximations & rendering algorithms
+Subsurface scattering
+
+32
+
+Absorption/emission only
+• Simplified model
+– Integration is along ray x, ω
+– Volume emission Lve
+
+• No in-scattering (use given volume emission instead
+of in-scattering)
+
+– Contribution from surface (optional)
+• Assumption: ray hits opaque surface at distance s
+• Radiance reflected by surface at distance s is L(s)
+• Attenuated surface reflection at x is T(s)L(s)
+
+• Remember transmittance
+33
+
+Ray marching
+• Approximation of integral
+
+– Number of samples along ray N
+– Uniformly distributed locations along ray si
+T(si)
+
+Lve(si)
+si
+
+x
+
+L(s)
+
+ω
+
+T(s)
+34
+
+Ray marching
+• Incremental computation of transmittance
+
+ds
+
+Linear approximation
+for small ds
+
+35
+
+Ray marching
+T = 1
+L = 0
+ds = (s_out – s_in) / N
+
+// Number of steps N
+
+for( s_i = s_in; s_i <= s_out; s_i += ds ) {
+L = L + T * L_ve
+T = T * ( 1 – sigma_t(s_i) * ds)
+}
+L = L * ds
+
+L = L + T*L_s // Add attenuated surface
+// reflection T*L_s
+36
+
+Ray marching
+• Deterministic step sizes leads to biased estimate
+of integral
+• Could also sample locations si randomly
+• However, resulting Monte Carlo estimate of
+transmittance is biased
+
+MC estimate of
+transmittance is
+biased
+
+Optical thickness using
+MC sampling of locations
+si unbiased
+
+Problem: unbiased MC estimator for transmittance?
+37
+
+Null scattering, delta tracking
+PBRT, 4th edition, Section 11.2.1
+
+• Reformulate mathematical expression of
+transmittance using null scattering
+• Null scattering: hypothetical type of scattering
+that doesn’t affect radiance along ray
+• Delta tracking: unbiased method to calculate
+transmittance using null scattering and Monte
+Carlo sampling
+– Place samples along ray step by step, with random
+step size
+– In each step, randomly decide if true scattering or
+null scattering occurs
+– If true scattering, stop; if null, scattering continue
+38
+
+Absorption/emission only
+No absorption
+
+With absorption
+
+[Pharr, Humphreys]
+
+39
+
+Applications: Volume visualization
+http://en.wikipedia.org/wiki/Volume_rendering
+
+• Visualize scalar data on volumetric grid
+• CT, MRI scans, …
+• Scalar data represents some physical
+property of a material
+• Medical/industrial applications
+• Transfer function assigns color (volume
+emission) and opacity value (extinction
+coefficient) to each scalar value
+40
+
+Volume visualization
+Volume rendering: ray marching/ray
+casting as described before
+
+41
+
+Applications: NeRF (Neural radiance fields)
+• Context: novel view synthesis and 3D
+reconstruction from images
+• Formulated as inverse rendering problem:
+find extinction function σt, volumetric
+“emission” Lve, such that rendered images
+match given input photos
+• Represent σt, Lve as neural networks
+• More later https://www.matthewtancik.com/nerf
+42
+
+Single scattering
+• Include in-scattering of incident radiance due to
+direct illumination
+Integral
+along ray
+
+•
+•
+•
+•
+
+Optional
+
+In-scattering (spherical integral),
+
+Direct illumination Ld
+Phase function
+Scattering coefficient
+Emission Lve = 0, except for volumetric sources
+such as fire
+43
+
+Single scattering
+• Emission Ls needs to be attenuated by transmittance from tin
+to tout to calculate incident radiance Ld on camera ray
+• Shoot shadow rays towards light sources at each step during
+ray marching
+
+ω’
+
+44
+
+Shadow rays
+• Ray march towards light
+• Leads to two nested ray
+marching loops
+T = 1
+dt = t_out – t_in / N
+
+Ls
+T
+
+S
+
+for( t = t_in; t <= t_out; t += dt ) {
+T = T * ( 1 – sigma_t(t) * dt )
+}
+L_d = T * L_s // L_s: light source
+S = sigma_s * p * L_d // p: phase function
+45
+
+Shadow rays
+• Homogeneous media σt(x) = σt (constant)
+
+– No ray marching necessary along shadow rays
+– Compute transmittance directly via Beer’s
+law
+
+46
+
+Single scattering
+
+[Pharr, Humphreys]
+
+47
+
+Beams of light
+
+[Greenler]
+
+[Minneart]
+48
+
+Simulating multiple scattering
+• Path tracing,
+• Photon mapping
+“Efficient Simulation of Light Transport in
+Scenes with Participating Media using
+Photon Maps”, Jensen, Christensen
+PBRT, 4th Edition, Chapter 14
+
+http://portal.acm.org/citation.cfm?id=280925
+
+“Realistic Image Synthesis using Photon
+Mapping”, Jensen
+http://www.amazon.com/Realistic-Image-Synthesis-Photon-Mapping/dp/1568811470
+
+• Many more recent improvements
+https://cs.dartmouth.edu/wjarosz/publications/bitterli17beyond.html
+
+49
+
+Photon mapping
+• Volume caustics
+
+[Jensen]
+50
+
+Today
+•
+•
+•
+•
+•
+
+Introduction
+Light interaction with participating media
+Volume rendering equation
+Approximations & rendering algorithms
+Subsurface scattering
+
+51
+
+Subsurface scattering
+• Same physical phenomon as before
+• Different approximation for specific
+materials
+– Highly scattering (large scattering coefficient)
+
+• Different rendering algorithms
+
+52
+
+Subsurface scattering
+• Could render using brute force Monte
+Carlo path tracing
+– Very expensive
+
+• Idea: describe scattering properties of
+material using an extension of BRDFs
+– So far: BRDFs, light scatters exactly at the
+same point where it hits the surface
+– Subsurface scattering: light enters the
+material, bounces around, leaves at a
+different place
+53
+
+Subsurface scattering
+• BSSRDF: bidirectional surface scattering
+reflectance distribution function
+BRDF
+
+BSSRDF
+
+54
+
+Subsurface scattering
+• BSSRDF has 8 degrees of freedom (2
+positions, 2 orientations)
+– Abstract model that describes aggregate
+effect of scattering inside material
+
+• Hard to capture physically in the general
+case, requires specialized equipment
+http://omilab.naist.jp/~mukaigawa/papers/TCVA2013-BSSRDF.pdf
+
+• Impractical to store in a table
+
+55
+
+Subsurface scattering
+Diffusion approximation
+http://www.graphics.stanford.edu/papers/bssrdf/
+
+• Light distribution in highly scattering
+media tends to become isotropic
+• Define a simple, analytic diffuse BSSRDF
+that approximates subsurface scattering
+– Express ratio of scattered over incident
+radiance as function Rd(r) of distance r=||xi-xo||
+between entry and exit points
+
+• Approximation known as “dipole model”
+56
+
+Subsurface scattering
+Diffusion approximation
+Rd(r)
+
+Diffusion profile as function of radius r
+[Jensen et al.]
+
+Diffusion profile
+57
+
+Subsurface scattering
+BSSRDF
+
+BRDF
+
+[Jensen et al.]
+58
+
+Subsurface scattering
+BRDF
+
+BSSRDF
+
+Monte Carlo
+simulation
+
+[Jensen et al.]
+
+59
+
+Efficient rendering
+• “A Rapid Hierarchical Rendering
+Technique for Translucent Materials”,
+Jensen, Buhler
+http://graphics.ucsd.edu/~henrik/papers/fast_bssrdf/fast_bssrdf.pdf
+
+• Two pass approach
+– First, compute irradiance at a set of surface
+points
+– Second, evaluate diffuse BSSRDF by
+gathering irradiance samples
+
+• Use efficient hierarchical scheme
+60
+
+Efficient rendering
+• Irradiance gathering using the diffuse
+BSSRDF
+Irradiance
+sample
+
+Reflected radiance
+61
+
+Efficient rendering
+Irradiance
+samples
+
+Final
+image
+[Jensen, Buhler]
+62
+
+Efficient rendering
+• Global illumination and subsurface
+scattering
+
+[Jensen, Buhler]
+63
+
+

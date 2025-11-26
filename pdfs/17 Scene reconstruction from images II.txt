@@ -1,0 +1,549 @@
+CMSC740
+Advanced Computer Graphics
+Matthias Zwicker
+Fall 2025
+
+Limitations of NeRF
+• Doesn’t attempt to represent surface directly (only volumetric
+density σ)
+• Treats pixels as infinitesimal rays, doesn’t take into account pixel
+areas
+• Doesn’t take into account imaging artifacts such as blur, over/under-exposure
+• Only works for static scenes
+• Requires known camera parameters
+• Training and rendering slow
+• Requires many input images for high quality reconstruction
+• Doesn’t take into account potential appearance variation in input
+images (different illumination, time, time of year, etc.)
+• Doesn’t recover BRDF parameters and illumination
+• Only uses 3D locations to predict scene (density, radiance); does not
+use correspondence information between 3D locations and images
+
+2
+
+Dealing with appearance changes
+• Input images may be taken at different
+times
+• Objects may move
+• Illumination may change
+
+• Static radiance field cannot model these
+effects
+
+3
+
+NeRF-W
+• “NeRF in the Wild: Neural Radiance Fields for
+Unconstrained Photo Collections”, CVPR
+2021,
+https://nerf-w.github.io/
+
+• Goal: NeRF using images of outdoor scenes,
+acquired by different cameras, over extended
+period of time (e.g., tourist photos)
+• NeRF-W addresses two challenges
+1. Different times of day, atmospheric conditions,
+imaging pipelines (exposure, white balance,
+tone-mapping)
+2. Transient objects
+4
+
+NeRF (recap of basic approach)
+• Ray r, ray parameter t, sample point z(t),
+spatial encoding γx, density σ, radiance c
+θ2
+
+Radiance, density at sample point
+
+z(t)
+Rendered pixel color
+Spatial
+encoding
+
+θ1
+
+δk: distance between k-1 and k-th sample on ray
+
+α(x) = 1-exp(-x)
+
+5
+
+Latent appearance model
+• Goal: allow image-dependent radiance
+along each ray based on per-image latent
+appearance vector
+• Latent appearance vector
+– Represents “latent” influence of appearance
+(time of day, atmospheric conditions,
+parameters of imaging pipeline) of entire
+image on pixel values
+– Learned/optimized per image
+– Used as per-image input to radiance network
+6
+
+NeRF-W
+• Latent appearance code li(a) per image i
+• Image dependent radiance ci
+θ2
+
+z(t)
+
+θ1
+
+7
+
+Transient objects
+• Goals
+– Reconstruct images containing transient
+occluders (objects not present in all images)
+– Allow model to ignore unreliable (uncertain)
+pixels likely containing occluders
+
+• Approach
+– Model transient objects separately using
+transient density and radiance
+– Estimate uncertainty to weigh loss
+
+8
+
+Transient radiance, density
+• Optimize separate radiance fields ci, σ,
+and ci(τ), σi(τ) for static and transient
+(moving) scene parts
+Static
+
+Transient density, radiance
+
+9
+
+Uncertainty
+• Optimize uncertainty in addition to
+transient density, radiance using MLP
+Transient density,
+radiance
+
+Uncertainty
+
+Per image transient
+appearance
+
+• Render uncertainty βi to pixels similar as
+radiance, use to weight loss
+10
+
+NeRF-W architecture
+• Full model
+θ2
+
+z(t)
+
+θ1
+θ3
+11
+
+Per-pixel loss function Li(r)
+• First term: color difference weighted by
+uncertainty
+• Second term: avoid trivial solution
+βi(r)=infinity
+• Third term: regularization, discourage large
+transient density
+
+12
+
+Visualization
+• Can render static and transient components
+separately
+• Loss minimizes difference between
+“composite” and ground truth image,
+weighted by rendered uncertainty
+
+13
+
+Results
+•
+
+https://nerf-w.github.io/
+
+Phototourism dataset
+https://github.com/vcg-uvic/image-matching-benchmark
+
+14
+
+Extension to large scenes
+• Challenge: training single NeRF to large scene is
+time/memory consuming
+• Block-NeRF: train multiple NeRFs separately, with
+extensions to combine them for rendering
+https://waymo.com/research/block-nerf/
+
+• Target application: city rendering
+
+Large scale reconstruction with multiple NeRFs, input
+data collected “in the wild” over long periods of time
+15
+
+Block-NeRF
+• Combines Mip-NeRF (extended positional
+encoding using beam geometry) and NeRFW (latent appearance codes)
+• Extensions
+– Placement of multiple blocks (separate NeRFs)
+– Visibility prediction
+– Rendering using multiple NeRFs
+
+16
+
+Block size, placement
+• Target application: rendering cities
+• Based on city blocks, place NeRF at city
+block intersections
+
+17
+
+Visibility network
+• Visibility network trained to match
+transmittance given by main NeRF network
+• Used to quickly predict visibility (faster
+than using NeRF densities to compute
+transmittances)
+
+18
+
+Additional details
+• Refine camera poses during training
+• Provide known image exposure times as
+input to NeRF
+• Remove transient objects using semantic
+segmentation (people, cars, etc.)
+
+19
+
+Rendering target views
+Steps
+1. Appearance matching
+2. Render target view from
+all blocks within given
+radius
+3. Discard rendered views
+based on low visibility
+(average over pixels)
+4. Blend views based on
+distance between virtual
+camera and block origin
+(large distance, low
+weight)
+20
+
+Appearance matching
+• Goal: use latent appearance vectors to match appearance
+(time of day, white balance, weather, etc.) between NeRFs
+• Naïve approach: use same appearance vector for all NeRFs
+– Doesn’t work
+
+• Greedy approach: fix appearance vector for one NeRF, then
+optimize appearances of “overlapping” NeRF
+– Select small number of high visibility 3D locations, optimize
+appearance vector to match colors at these points in both NeRFs
+
+21
+
+Ablation study
+
+Full model vs. without
+latent appearance
+vectors, exposure
+input, pose refiniement
+22
+
+One large vs. many (smaller) NerFs
+• Size in meters
+• Top: increasing number of NeRFs with same number of parameters
+each
+• Bottom: increasing number of NeRFs with constant total number of
+parameters
+• Compute time for rendering depends on NeRF size, how many NeRFs
+rendered per target image (assume average of 2 NeRFs per target
+view)
+
+23
+
+Results
+• https://waymo.com/research/block-nerf/
+
+24
+
+Observation
+• NeRF predicts radiance along ray in brute
+force, ignorant of how radiance is
+produced
+– No model of reflection equation, or light
+transport
+
+• Idea: build models of light transport into
+NeRF
+– Could potentially provide more accurate
+solutions, reconstruct additional scene
+properties (surface normal, BRDFs,
+illumination)
+25
+
+Ref-NeRF
+• “Ref-NeRF: Structured View-Dependent
+Appearance for Neural Radiance Fields”,
+CVPR 2022
+• Small step towards modeling light
+reflection in NeRF framework
+
+• Intuition
+– Reflected light is (roughly) sum of diffuse and
+glossy
+– Diffuse is view independent
+– Glossy mostly determined by incident light
+around mirror reflection of viewing direction
+26
+
+Ref-NeRF
+• Approach: represent radiance as sum of
+diffuse and glossy
+• For glossy, use directional MLP using mirror
+reflection of view direction as input, instead
+of view direction itself
+
++
+Diffuse
+
+Glossy
+Observation: outgoing
+radiance determined by
+incident radiance around
+mirror reflection
+27
+
+Ref-NeRF
+• Additional tricks
+– Clever encoding of mirror reflection direction,
+including estimate of surface roughness
+(integrated directional encoding, IDE)
+– Tone mapping function to map radiance to
+captured pixel colors (models overexposure, nonlinear tone-mapping)
+Normal
+View direction
+
+View direction
+mirrored around
+normal
+
+Glossy lobe, width
+determined by
+surface roughness
+
+28
+
+Ref-NeRF
+Radiance c, density τ at
+sample point x, direction d in
+conventional NeRF
+
+29
+
+Ref-NeRF
+cd: diffuse radiance
+cs: “incident light averaged
+over glossy lobe”
+s: specular tint, models
+glossy scattering
+γ: tone mapping function
+c: radiance at sample point
+
+30
+
+Ref-NeRF
+cd: diffuse radiance
+cs: “incident light averaged
+over glossy lobe”
+s: specular tint, models
+glossy scattering
+γ: tone mapping function
+c: radiance at sample point
+
+IDE: Integrated directional encoding
+using mirror reflection of ray direction
+around normal, represents direction
+and width of glossy lobe
+(details of calculation see paper)
+
+ρ: surface roughness,
+determines width of glossy
+lobe
+n’: predicted surface normal
+
+31
+
+Predicting normal vectors
+Regularization terms
+• Consistency with gradient of density field
+
+Gradient of density field
+
+Predicted normal by spatial MLP
+
+• Avoid backfacing normal (pointing away
+from camera; backfacing means positive
+dot product)
+• Sample weight wi (based on transmittance)
+32
+
+Results
+
+33
+
+Results
+
+34
+
+NeRF for videos
+• “Nerfies: Deformable Neural Radiance
+Fields”, ICCV 2021,
+https://nerfies.github.io/
+• Approach: model 3D deformation field to
+track moving surfaces
+
+NeRF for static scenes
+35
+
+NeRF for videos
+• “Nerfies: Deformable Neural Radiance
+Fields”, ICCV 2021,
+https://nerfies.github.io/
+• Approach: model 3D deformation field to
+track moving surfaces
+
+Space deformation to model deformable objects
+Deformation modeled using latent vector ω
+
+36
+
+Mathematical model
+• What is good representation for deformation field?
+• Simple: displacement field (field of displacement
+vectors)
+• Disadvantage: rigid transformation (rotation,
+translation) may lead to complicated displacement
+field
+
+Displacement field for rigid transformation (rotation, translation)
+37
+
+SE(3) field
+• Rigid transformations (rotation,
+translations) SE(3)
+• Deformation field x -> SE(3), 3D point x
+• Advantage: for motion of rigid object,
+mapping x -> SE(3) is constant over x
+• SE(3) parameterized using 6D vector,
+consisting of axis/angle for rotation r,
+translation v
+– Corresponding transformation matrix can be
+computed using Rodrigues’ formula (see
+paper)
+38
+
+Regularization
+Three techniques
+• Elastic regularization
+• Coarse-to-fine training
+• Background regularization
+
+39
+
+Elastic Regularization
+• Jacobian of deformation field at each point is 3x3
+Jacobian matrix JT
+• Jacobian is “best local linear approximation” of
+deformation
+• Regularization: deformation should be as rigid as
+possible, that is, Jacobian should be as close as
+possible to rotation (no scale, shear)
+• Using singular value decomposition (SVD), U, V:
+orthonormal, Σ: diagonal (singular values)
+• Different possibilities to constrain JT, they use
+
+40
+
+Coarse-to-fine training
+• Trade-off between modeling small vs. large
+deformations
+– Can get trapped in local minima, or produce
+overly smooth results
+
+• Approach: positional encoding with weights
+wj(α(t)) that change during training based on
+value α(t), shifting from low to high
+frequencies j as training time t progresses
+
+41
+
+Coarse-to-fine training
+Lower frequencies
+wj(α(t))
+t
+wj+1(α(t))
+t
+
+wj+2(α(t))
+
+t=0
+
+t
+Higher frequencies
+
+Weight functions “activate” higher frequencies later in training
+42
+
+Coarse-to-fine training
+• Weight functions
+Coarse-to-fine
+positional encoding
+Weight function for frequency j
+
+t: training iteration
+m: max. frequency
+N: hyperparameter
+“linear annealing”
+
+43
+
+Background regularization
+• Use foreground segmentation to separate
+dynamic foreground from static
+background
+• Make sure feature points on background
+don’t move (deformation field is identity
+transformation)
+
+44
+
+Loss
+• Hyperparameter λ for regularization
+weight
+
+45
+
+Evaluation
+• Capture dynamic scenes with pair of
+cameras
+• Reconstruct NeRF from first camera,
+render into viewpoint of second camera,
+compare to ground truth
+
+46
+
+Ablation study
+• Empirical evaluation of effectiveness of
+regularization techniques, SE(3)
+deformation field
+
+• Results, links: https://nerfies.github.io/
+47
+
+

@@ -1,0 +1,655 @@
+CMSC740
+Advanced Computer Graphics
+Fall 2025
+Matthias Zwicker
+
+Today
+Global illumination
+• The Rendering Equation
+• Monte Carlo path tracing
+
+2
+
+So far: reflection equation
+• Given incident light Li over hemisphere H2(n) and BRDF f
+at point x, what is reflected light Lo
+• Lo is a radiance distribution: reflected radiance at each
+point x and in direction ωo
+Reflected radiance
+
+BRDF
+
+3
+
+So far: reflection equation
+• For example, known incident radiance
+given by environment map or known light
+sources
+
+Environment maps represent incident illumination at a point from full
+sphere of directions, can be captured using photos of mirror spheres
+
+• Evaluate reflection equation given known
+incident radiance using Monte Carlo
+integration
+
+4
+
+So far: reflection equation
+• Known direct illumination from area and point
+lights
+• Can also be integrated using reflection equation
+
+[Wojciech Jarosz]
+
+5
+
+Global illumination
+• Indirect illumination, „multiple bounces of light“
+• Incident light at one point (a) depends on reflected light at
+other point (b)
+– Etc. etc. recursively; incident light not given explicitly
+
+(b)
+
+(a)
+
+[Wojciech Jarosz]
+
+6
+
+Global illumination
+Direct only
+
+Direct & indirect
+
+Real photograph
+
+7
+
+Global illumination
+• How to represent idea of „multiple
+bounces of light“ compactly in an
+equation?
+• Think of both reflected (Lo) and incident
+radiance (Li) as unknown
+• Reflection equation expresses equilibrium
+between incident and reflected radiance
+reflected
+
+incident
+8
+
+Trick with notation
+• Remember: radiance doesn‘t change along
+ray (in vacuum)
+• Can get rid of distinction between incident Li
+and outgoing radiance Lo
+• Will denote outgoing radiance with L
+
+x‘ is point where ray x,ωi
+hits surface, ray tracing
+to find x‘ is implied
+9
+
+Light sources
+• Light sources are represented by known
+function Le(x,ωo)
+• Le is emitted radiance at each surface point x
+in each direction ωo
+• Le is zero if point x is not on a light source
+In practice
+• Light sources represented by triangle
+meshes, as other scene geometry
+• For points x on light source triangles, value
+of Le is non-zero, given by power of light
+source
+10
+
+Rendering equation
+http://en.wikipedia.org/wiki/Rendering_equation
+
+Reflected radiance appears as
+unknown on both sides of equation
+Conservation of energy:
+
+outgoing light L (on left hand
+side) is sum (on right hand side)
+of emitted light Le and reflected
+light, which is integral of
+incident light weighted by BRDF
+and cosine term
+11
+
+Rendering equation
+http://en.wikipedia.org/wiki/Rendering_equation
+
+Reflected radiance appears as
+unknown on both sides of equation
+Solution: find radiance
+L(x,ωo) such that
+reflection equation is
+satisfied simultaneously
+at each point x and
+direction ωo
+12
+
+Rendering equation
+http://en.wikipedia.org/wiki/Rendering_equation
+
+• Visual intuition for “reflection equation satisfied at
+each point”
+Incident radiance
+(over hemisphere)
+
+At each
+surface
+point
+
+[Wojciech Jarosz]
+
+equilibrium
+
+Reflected radiance
+(on diffuse surface)
+13
+
+Note
+• Rendering equation due to Jim Kajiya
+http://en.wikipedia.org/wiki/Rendering_equation
+
+• Gold standard model for photo-realistic
+rendering (using geometrical optics)
+• „Ultimately, all rendering algorithms (in
+computer graphics) try to (approximately)
+solve the rendering equation“
+• Remember
+– Rendering equation based on approximate
+physical model (geometric optics)
+– Cannot model wave effects such as polarization,
+diffraction
+14
+
+Today
+Global illumination
+• The Rendering Equation
+• Monte Carlo path tracing
+
+15
+
+Solving the rendering equation
+Naive approach
+• Recursive ray tracing as for mirror
+reflection, but shoot many rays in each step
+– Distribute rays over hemisphere at each step
+
+• Problem: exponential explosion of number of
+rays with each additional bounce
+– Exponentially more longer paths than shorter
+paths
+– But longer paths contribute less light to image
+than shorter ones, because some light absorbed
+at each bounce
+16
+
+Solving the rendering equation
+• Similar idea, but smarter
+• Intuition: Compute radiance L(x,ωo) as
+“integral over all light paths that connect
+light sources and eye”
+• Paths have different lengths (number of
+bounces)
+– Can formulate one integral for all paths of each
+length
+
+• Approach
+– Sum over all path lengths
+• Integral of radiance transported along all paths of
+given length (use Monte Carlo integration)
+17
+
+Mathematical formulation
+• Rendering equation is Fredholm integral
+equation of second kind
+http://en.wikipedia.org/wiki/Fredholm_integral_equation
+
+• Solution via series expansion
+– Neumann series
+http://en.wikipedia.org/wiki/Neumann_series
+
+– Liouville-Neumann series
+http://en.wikipedia.org/wiki/Liouville-Neumann_series
+
+18
+
+Operator form
+L=E+T(L) omits
+function
+arguments, to
+simplify notation
+
+19
+
+Operator form
+L=E+T(L) omits
+function
+arguments, to
+simplify notation
+
+20
+
+Operator form
+L=E+T(L) omits
+function
+arguments, to
+simplify notation
+
+21
+
+Series expansion
+• Rendering equation (operator form)
+• Series expansion (converges because of
+energy conservation of transport operator T)
+• Substitute limit back into rendering equation
+(exploit linearity of T)
+
+Infinite sum is
+correct solution!
+
+22
+
+Monte Carlo path tracing
+• Approximate integrals using Monte Carlo
+integration
+– One Monte Carlo sample = one path (of
+certain length) connecting light and camera
+– Sample individual paths randomly
+– MC estimate is simply sum over all path
+samples
+
+• Remember: each sample/path weighted
+with its inverse probability!
+– Need to keep track of sample/path
+probabilities
+23
+
+Path tracing
+• Want to compute radiance through each pixel in image
+– Sum of radiance over all light paths connecting light and
+camera
+
+• Light paths have different lengths
+
+Length 3
+
+…
+
++
+
++
+Length 4 …
+…
+
+Length 7
+
+…
+
+24
+
+Path tracing
+• Key question: how to construct (sample)
+random paths, and compute their
+probability densities
+• Many possible approaches
+• “(Unidirectional) path tracing”
+– Simplest approach: construct each path
+step-by-step starting at the eye
+
+25
+
+Construct random path
+• Path of length k: after k-1 steps, sample light
+source (i.e., shoot “shadow ray”, aka “next
+event estimation”)
+
+26
+
+Construct random path
+• Path of length k: after k-1 steps, sample light
+source (i.e., shoot “shadow ray”, aka “next
+event estimation”)
+
+Probability density for
+incident directions ωi
+
+27
+
+Construct random path
+• Path of length k: after k-1 steps, sample light
+source (i.e., shoot “shadow ray”, aka “next
+event estimation”)
+
+Probability density for
+incident directions ωi
+
+28
+
+Construct random path
+• Path of length k: after k-1 steps, sample light
+source (i.e., shoot “shadow ray”, aka “next
+event estimation”)
+
+Probability density for
+incident directions ωi
+
+29
+
+Construct random path
+• Path of length k: after k-1 steps, sample point xk
+on light source (i.e., shoot “shadow ray”)
+
+Probability density for
+sample point xk on light
+source area
+
+Probability density for
+incident directions ωi
+
+30
+
+Relation of density on surface vs. hemisphere
+• Conversion to density per solid angle
+pω(x), if x obtained by sampling point on
+surface with density pA(x)
+Density per surface area
+
+Relation of densities:
+
+Density per solid angle
+
+31
+
+Idea for improvement
+• Could reuse each shorter subsequence of a path
+as a shorter path
+• In each step during
+path construction,
+sample light once
+
+32
+
+Path tracing
+• Construct paths incrementally starting at the eye
+• Shoot shadow rays (connection to light source) at
+each path vertex (hit point)
+• “Each eye ray contributes one path of each length”
+• Each eye ray contributes one sample to integral for
+each path length
+Shadow ray at each path vertex
+
+Eye rays
+
+[Cutler, Durand]
+33
+
+Russian roulette
+• Issues
+
+– What should be the maximum path length?
+– Longer paths should be less likely, since they
+carry less radiance
+
+• Introduce probability q to terminate path in
+each step
+
+– If termination: stop extending path (probability
+q)
+– Otherwise: sample next path segment as usual,
+probability of new path needs to be multiplied by
+1-q
+
+• Does not change expected value of MC
+estimate (i.e., unbiased)
+
+34
+
+Pseudocode notes
+• Computes pixel color using N primary rays, i.e., paths
+• Sequence of termination probabilities (Russian roulette)
+q[k] for k-th vertex along path
+• PDF p_w measures density over solid angle
+– If point on light x is sampled over area, probability p_w(x)
+needs to include conversion to density over solid angle (see
+before)!
+
+• alpha values
+
+– Store (product of BRDFs and cosine factors)/(probability for path)
+– Really are vectors with 3 components for RGB, here as scalar for
+simplicity
+– BRDF BRDF(w_o,w_i) with w_o = direction of previous path
+segment, w_i = direction of new path segment
+– cos is cosine of w_i to normal
+
+• shade(hitRecord,x) includes multiplication of light
+(emission) with
+– BRDF at hit point with incident direction towards point x on
+light source
+– Cosine factor of direction towards point on light
+
+35
+
+Path tracing pseudocode
+// in main rendering loop
+c = 0
+for i from 1 to N // N samples per pixel
+// in integrator
+alpha = 1
+hitRecord = shoot primary ray
+k = 0
+while(true)
+x = sample a point on a light source with pdf p_w(x)
+c = c + alpha*shade(hitRecord,x)/(p_w(x))
+break with probability q[k]
+hitRecord = shoot ray along w_i with pdf p_w(w_i)
+alpha = alpha*BRDF(w_o,w_i)*cos/(p_w(w_i)*(1-q[k]))
+k++
+c = c/N
+
+// final pixel color
+36
+
+Notes: Russian roulette
+• Never terminate at very first steps
+• Usually, q1 = q2 = 0
+• Otherwise, constant probability qi=0.5
+works fine
+
+37
+
+Notes: Probability densities
+• PDF for sampling directions
+– Uniform
+(shouldn’t be used, high
+variance)
+– Cosine weighted
+(simple
+to implement, a bit less variance)
+– Advanced: importance sampling the BRDF
+
+• Details on importance sampling in
+PBRT book by Pharr, Humphreys
+http://www.pbrt.org/
+
+38
+
+Notes: Probability densities
+• PDF for sampling light sources
+– Uniform sampling
+pω(x) = 1/(number of lights) *
+1/(area of selected light) *
+conversion to pdf over directions
+
+[Slides 30, 31]
+
+• Implementation
+– Select light in integrator
+
+• Advanced: multiple importance sampling
+39
+
+Notes: Probability densities
+• Sampling area light source
+Conversion to solid angle
+
+40
+
+Notes: Refractive objects
+• Pseudocode assumes reflective, refractive
+BRDFs are represented correctly
+– Including cosine factor in BRDF!
+– Cancels out with cosine factor in pseudocode
+
+• In practice, handle reflective/refractive
+objects as distinct case
+– Sampling directions: pick mirror reflection
+(refraction) with probability 1
+– Don‘t explicitly divide/multiply by cosine
+41
+
+Notes: Refractive objects
+• Randomly sample (trace) either reflected
+or refracted ray with given probability
+– Can pick constant probability
+– Can pick probability based on Fresnel
+reflection coefficient
+– Need to include probability in overall pdf of
+path!
+
+• Refractive objects tend to produce a lot
+of noise in (uni-directional) path tracing…
+42
+
+Notes: Emitting surfaces
+• Emitting surfaces (area lights) should be
+part of regular scene geometry
+• If a ray (accidentally) hits emitting
+surface, don‘t add emission
+– Emission is taken care of by shadow rays
+
+• Exception: need to add emission if
+– Eye ray hits emitting surface
+– Ray segment was generated from refractive
+surface (in this case, no shadow ray needs to
+be generated)
+43
+
+Path tracing example
+
+[Kajiya `86]
+
+4 rays/pixel
+44
+
+Path tracing example
+
+[Kajiya `86]
+
+8 rays/pixel
+45
+
+Path tracing example
+
+[Kajiya `86]
+
+16 rays/pixel
+46
+
+Path tracing example
+
+[Kajiya `86]
+
+32 rays/pixel
+47
+
+Path tracing example
+
+[Kajiya `86]
+
+64 rays/pixel
+48
+
+Path tracing example
+
+[Kajiya `86]
+
+128 rays/pixel
+49
+
+Path tracing: the good
+Most straightforward Monte Carlo estimate
+of rendering equation
+• Unbiased
+Expected value for each pixel is the
+correct solution of the rendering
+equation, independent of number of
+samples
+• Consistent
+If we shoot infinitely many rays, we will
+get the correct solution
+50
+
+And the bad…
+
+10 paths/pixel
+
+[Wann Jensen]
+
+51
+
+And the bad…
+
+10 paths/pixel
+
+[Wann Jensen]
+
+52
+
+And the bad…
+
+100 paths/pixel
+
+[Wann Jensen]
+
+53
+
+And the bad…
+
+1000 paths/pixel
+
+[Wann Jensen]
+
+54
+
+Summary
+• Path tracing often used as reference
+algorithm
+– Generates „ground truth“ image with enough
+samples (often thousands per pixel)
+
+• Not very practical because of noise issues
+– In particular for certain types of light paths
+(caustics)
+
+• Relevant chapters in PBRT book
+– 14.4 The Light Transport Equation
+– 14.5 Path Tracing
+55
+
+Next time
+• Advanced Monte Carlo rendering
+techniques
+
+56
+
+

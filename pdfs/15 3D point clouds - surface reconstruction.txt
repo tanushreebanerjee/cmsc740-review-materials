@@ -1,0 +1,661 @@
+CMSC740
+Advanced Computer Graphics
+Matthias Zwicker
+Fall 2025
+
+Surface reconstruction
+• Input: point cloud
+• Output: watertight triangle mesh
+
+2
+
+Challenges
+Input data quality
+
+How to assess
+output quality?
+
+• Noise
+• Holes
+
+Input
+
+Output
+
+http://mesh.brown.edu/ssd/pdf/Calakli-pg2011.pdf
+
+3
+
+Quality measures
+• Hausdorff distance: distance between two subsets of
+metric space
+– Surface: subset of all 3D points
+– “Greatest of all distances from point in one set to closest
+point in other set”
+
+• Distance of point a to subset B
+
+• Definition of Hausdorff distance
+
+• Efficient computation non-trivial
+https://dl.acm.org/doi/abs/10.3233/ICA-170544
+
+4
+
+Quality measures
+• Chamfer distance between discrete point
+sets
+
+• In practice, random sampling of continuous
+surfaces to compute sum
+
+5
+
+Quality measures
+• Preserve topology (number of holes,
+handles in closed surface)
+
+Genus 0
+
+Genus 1
+
+Genus 2
+
+6
+
+Two examples today
+1. Combinatorial
+– Connect input data points to mesh
+
+2. Function fitting
+– Implicit function in 3D
+
+• Many, many more variations from recent
+research
+• «A Survey of Surface Reconstruction from
+Point Clouds”, Berger et al. 2016
+https://hal.inria.fr/hal-01348404v2/document
+
+7
+
+Two examples today
+1. Combinatorial
+– Connect input data points to mesh
+
+2. Function fitting
+– Implicit function in 3D
+
+8
+
+Gradients
+• Implicit surface defined by function
+f(x) : R3 - > R, x = (x,y,z), as set {x | f(x)=C}
+• Gradients
+
+• Gradients are normals of isosurfaces
+{x | f(x)=const}, in particular {x | f(x)=0}
+for any value of const
+9
+
+Overview
+• Input: points pi , optional normals ni
+
+ni
+pi
+
+10
+
+Overview
+1. Find function f such that for all i: f(pi)=0, and
+additional contraints, such as || f(p)||=1 for all p, or
+f(pi)=ni for all i if normals ni available
+f(p)
+
+pi
+
+11
+
+Overview
+2. Triangulate isosurface {x | f(x)=0}
+f
+
+pi
+
+{x | f(x)=0}
+
+12
+
+Poisson surface reconstruction
+• “Screened Poisson Surface Reconstruction”,
+Kazhdan and Hoppe, ACM TOG 2013
+• Standard approach often used in practice
+• Implicit function is defined by 3D grid of function
+values, with trilinear interpolation
+– Implicit function represented as piecewise linear
+function https://en.wikipedia.org/wiki/Piecewise_linear_function
+
+• Code, etc.
+
+http://www.cs.jhu.edu/~misha/Code/PoissonRecon/Version8.0/
+https://doc.cgal.org/latest/Poisson_surface_reconstruction_3/index.html
+
+13
+
+Distance function
+• Implicit function with || f(p)||=1 for all p
+– Signed distance function (SDF), if gradient is
+continuous
+
+• Deep signed distance function: use neural
+network to represent f(x)
+– Instead of piecewise linear, or spline
+(piecewise polynomial) function
+
+14
+
+Deep SDF fitting
+• “IGR: Implicit Geometric Regualrization for
+Learning Shapes” (ICML 2020),
+https://github.com/amosgropp/IGR
+
+• Reconstruct continuous SDF represented
+by neural network from point cloud
+– Optimization (“training”) for each point cloud,
+no data set reqired
+
+Input
+
+SDF as neural network
+
+Input
+
+SDF as neural
+network
+
+15
+
+Formulation
+• Point cloud
+• Optional normals
+• Multilayer perceptron (MLP), parameters θ
+:
+• Loss
+
+Ensure f is distance function
+
+Constrain function
+values at
+input points
+
+– If normals are available τ = 1, else τ = 0
+
+16
+
+Network architecture
+• “Autodecoder”
+• Input: Latent code L (learnable), 3D location
+• Output: signed distance value (scalar)
+
+FC: fully connected
+17
+
+Optimization
+• Stochastic gradient descent with network
+parameters θ as variables
+• Randomly sample 3D points x and data
+points xi
+
+18
+
+Why does it work?
+• Using a “soft penalty” to ensure unit
+length gradients usually doesn’t guarantee
+unit length gradients in solution
+• Solution is not unique; why does stochastic
+gradient descent on network parameters
+find a “reasonable” solution?
+• Paper shows some analysis why a planar
+point cloud leads to SDF that exctly
+represents plane (and not “wiggly”
+surface)
+19
+
+Results
+• State of the art accuracy
+
+Previous
+SOTA
+
+New
+approach
+
+Previous
+SOTA
+
+New
+approach
+
+https://arxiv.org/pdf/2002.10099.pdf
+20
+
+Results
+• DGP: previous state of the art (also neural
+network based)
+• Chamfer distance dC (one sided dC)
+• Hausdorff distance dH (one sided dH)
+
+https://arxiv.org/pdf/2002.10099.pdf
+21
+
+Neurall-Pull (ICML 2021)
+
+https://github.com/mabaorui/NeuralPull
+
+• Neural network based implicit function fitting
+(similar as IGR)
+• Different loss function d
+– Neural network f(c, q), trained over shape data set,
+learnable shape specific condition (latent code) c
+– Query location qi, input point ti closest to ti’
+
+Pull query qi towards surface
+using direction and distance
+given by neural network f
+
+22
+
+Neurall-Pull
+
+https://github.com/mabaorui/NeuralPull
+
+Neural-pull
+• CD: Chamfer distance
+• DSDF, ATLAS,
+Points2Surf: neural
+network based
+• PSR: Poisson surface
+reconstruction,
+piecewise polynomial
+implicit function
+23
+
+Triangulate isosurface
+• Goal: construct triangle mesh that
+approximates implicite function
+• Marching cubes approach
+http://en.wikipedia.org/wiki/Marching_cubes
+
+– Sample implicit function on 3D grid
+– Construct triangulation of each grid cell
+separately
+
+24
+
+Triangulate isosurface
+• Given values of f at grid vertices
+• Triangulate zero-isosurface {x | f(x)=0}
+• Idea: visit all cells, triangulate each cell with sign
+changes at its vertices separately
+f<0
+
+f>0
+
+f<0
+
+f>0
+
+Triangulated
+cell
+
+All cells
+triangulated
+25
+
+Isosurface extraction in 3D
+• Basic algorithm in 3D called marching cubes
+http://en.wikipedia.org/wiki/Marching_cubes
+
+• 28 = 256 cases of possible configurations for
+sign changes
+• Can reduce to small number of cases using
+symmetries (rotation, reflection)
+
+15 basic cases for sign change configurations in marching cubes
+26
+
+Marching cubes
+• Encode each cell as 8-bit number given by
+signs at vertices
+• Look-up triangulation in precomputed look-up
+table
+• Position vertices along cube edges by linear
+interpolation
+f0
+
+f1
+
+Position
+determined by
+linear interpolation
+of values f0, f1 at
+neighboring cube
+vertices
+27
+
+Two examples today
+1. Combinatorial
+– Connect input data points to mesh
+
+2. Function fitting
+– Implicit function in 3D
+
+28
+
+Combinatorial approaches
+• Connect input points to form mesh
+• Discrete number of possible connections,
+combinatorial problem
+• Strategies?
+
+Input
+
+Output
+29
+
+Goals
+• Guarantee watertight mesh, without self
+intersections, gaps, cracks
+• Guarantee same topology (genus) as (uknown)
+original shape
+http://en.wikipedia.org/wiki/Genus_(mathematics)
+
+– Same number of holes, handles
+
+Genus 0
+
+Genus 1
+
+Genus 2
+30
+
+Topics
+Background
+• Voronoi diagram
+• Delaunay triangulation
+• Medial axis/surface
+• Crust
+Reconstruction algorithms
+• Curve reconstruction using crust
+• Extension to surfaces in 3D
+31
+
+Voronoi diagram
+http://en.wikipedia.org/wiki/Voronoi_diagram
+
+• Partition of space into regions given by set of
+points
+– Partition: non overlapping, complete coverage
+
+• Voronoi cell of each input point is area closest to
+that input point
+Voronoi vertex
+(equidistant to
+three or more
+input points)
+Voronoi cell
+(convex polygon)
+
+Voronoi edge
+(equidistant to
+two input points)
+
+Input point
+Voronoi diagram
+32
+
+Delaunay triangulation
+http://en.wikipedia.org/wiki/Delaunay_triangulation
+
+• Dual graph of Voronoi diagram
+http://en.wikipedia.org/wiki/Dual_graph
+
+– Delaunay vertex (input point) corresponding to
+each Voronoi cell
+– Delaunay edge joining two neighboring Voronoi
+cells
+
+Delaunay vertex
+Delaunay edge
+
+Delaunay triangulation
+
+33
+
+Delaunay triangulation
+Properties
+• No Delaunay vertex lies inside any
+circumsphere of any Delaunay triangle
+• Maximizes minimum angle in all triangles
+Circumcircle/sphere
+
+34
+
+Algorithms for Delaunay triangulation
+• Non-trivial, in particular in higher
+dimensions
+• Separate research area, computational
+geometry
+https://en.wikipedia.org/wiki/Computational_geometry
+
+• Standard implementations available
+http://www.qhull.org/
+
+35
+
+Medial axis/surface
+• Set of points with more than one closest point on
+curve/surface
+• Can interpret as extension of Voronoi diagram to continuous
+curves/surfaces
+• For curves in 2D, Voronoi vertices (vertices of Voronoi
+diagram) of dense set of sample points along curve
+approximate medial axis
+– Unfortunately, doesn‘t hold in 3D
+
+Medial axis
+
+Medial surface
+
+36
+
+Crust
+Definition of Crust
+• A graph on the sample points
+• Each pair of sample points potentially
+forms an edge
+• An edge belongs to the crust if it has
+circumcircle empty of
+– other sample points
+– and all Voronoi vertices given by the sample
+points
+37
+
+Curve reconstruction using „crust“
+1. Compute Voronoi diagram of sample points
+2. Compute Delaunay triangulation of sample points and
+Voronoi vertices
+3. Crust is all edges of this Delaunay triangulation that
+contain only sample points („Voronoi“ filtering)
+
+Crust
+Voronoi
+vertex
+Sample point
+
+Delaunay triangulation of sample
+points and Voronoi vertices
+38
+
+Crust algorithm
+• When does it work, when doesn‘t it?
+
+• Intuitively, need „dense enough“ samples
+39
+
+Sampling criterion
+Feature size
+
+• Distance from point on (continuous) surface to nearest point on medial axis
+
+r-sample
+• A set of points is r-sample of surface, if distance from any point on surface
+to nearest sample is at most r times feature size
+• „If the medial axis is close to the surface, we need to sample more densely
+to satisfy the r-sampling criterion“
+• Medial axis is close to surface if curvature is high, or in thin structures
+• R-sampling criterion takes into account both curvature and proximity of
+surface parts („object thickness“)
+
+Visualization of feature size
+
+40
+
+Sampling theorem
+Theorem (Amenta et al.)
+Crust of an r-sample from a smooth curve
+connects only adjacent points on the curve
+if r <= 0.25
+http://www.cs.ucdavis.edu/~amenta/pubs/crust.pdf
+
+„Curve reconstruction works correctly if
+distance from any point on original,
+continuous surface to nearest sample is at
+most r=0.25 times feature size“
+41
+
+Extension to 3D
+
+http://www.cs.ucdavis.edu/~amenta/pubs/crust.pdf
+
+• In 3D, Voronoi vertices do not necessarily lie
+close to medial axis (which they do in 2D)
+– Even if surface is densely sampled
+
+• Cannot use the exact same scheme as for
+curves
+Voronoi cell of
+blue input point
+Input point
+
+Voronoi vertex far
+from medial axis
+(surface)
+42
+
+Observations
+• Voronoi cell of blue sample is long and thin
+• Roughly perpendicular to surface,
+extending out to medial surface
+• Some Voronoi vertices do lie close to
+medial axis
+
+Voronoi cell of
+blue vertex
+
+Input point
+
+Voronoi vertex
+Voronoi vertices close
+to medial surface
+43
+
+Crust in 3D
+• Instead of using all Voronoi vertices in Voronoi
+filtering step, for each sample use only the two
+Voronoi vertices farthest from the sample,
+instead of all Voronoi vertices
+• One on each side of the surface
+• Called „poles“
+
+1st pole
+
+2nd pole
+
+• First pole: farthest vertex
+• Second pole: farthest
+vertex that forms
+negative dot product
+with first pole
+
+Negative
+dot product
+44
+
+Crust in 3D
+
+http://www.cs.ucdavis.edu/~amenta/pubs/crust.pdf
+
+Voronoi filtering
+
+s: sample point
+Vs: voronoi cell of s
+p+,p-: poles
+n+,n- : directions from s
+to poles
+45
+
+Crust in 3D
+
+http://www.cs.ucdavis.edu/~amenta/pubs/crust.pdf
+
+Theorem (Amenta et al.)
+Given an r-sample of a surface with r<0.06.
+Then:
+– The crust of the sample contains a set of
+triangles forming a mesh topologically
+equivalent to the surface
+– Every point on the crust lies within distance
+5r*d(p) of some point p on the surface, where
+d(p) is the distance of p to the medial axis
+
+Proof: see paper
+46
+
+Normal estimation and filtering
+• Crust contains many small sliver triangles that
+are
+– Perpendicular to surface
+– Form T-junctions
+
+• Additional filtering (removal of triangles)
+required
+– Based on fact that vectors to poles are nearly
+perpendicular to surface
+
+• Throw away triangles whose normal differs too
+much from estimated normals
+– Can prove that the remaining triangles still form a
+subset forming a mesh topologically equivalent to the
+surface
+47
+
+Examples
+
+http://www.cs.ucdavis.edu/~amenta/pubs/crust.pdf
+
+48
+
+Summary
+• Combinatorial approach using Voronoi
+diagram, Delaunay triangulation, Crust
+• Advantages
+– Guarantees correct topology under certain
+sampling criterion (feature size, r-sample)
+
+• Disadvantages
+– Interpolating input points undesireable if input
+points are noisy
+
+49
+
+

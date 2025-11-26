@@ -1,0 +1,489 @@
+CMSC740
+Advanced Computer Graphics
+Matthias Zwicker
+Fall 2025
+
+3D geometry processing
+Objectives
+• Theory and algorithms to capture, process,
+manipulate, and analyze 3D shapes
+
+2
+
+Applications
+
+Medical
+
+Simulation
+
+E-commerce
+Cultural heritage
+Scientific research,
+imaging
+
+GIS
+
+Architecture
+
+3D printing,
+manufacturing
+
+Games,
+movies
+
+Shape
+databases 3
+
+Processing pipeline
+
+Acquisition
+
+Processing
+
+Application
+
+4
+
+Processing pipeline
+Acquisition
+
+Processing
+
+Application
+
+Acquisition: raw data
+• 3D point clouds
+
+5
+
+Processing pipeline
+Acquisition
+
+Processing
+
+Application
+
+Acquisition: devices
+• 3D scanners (triangulation,
+time of flight)
+• 3D reconstruction from
+images (computer vision:
+structure from motion,
+Multiview stereo)
+
+3D scanner
+
+• 3D imaging technologies
+(microscopy, MRI, CT)
+• Interactive modeling
+
+3D reconstruction
+from images
+
+6
+
+Processing pipeline
+Acquisition
+
+Processing
+
+Application
+
+Processing
+• E.g., surface reconstruction from points
+
+7
+
+Processing pipeline
+Acquisition
+
+Processing
+
+Application
+
+Applications
+• Visualization, rendering (games, movies,
+design)
+• Manufacturing (3D printing)
+• Analysis (classification, segmentation)
+• Simulation (structural analysis, shape
+optimization, etc.)
+• Databases, retrieval
+8
+
+Main topics
+• Surface representations, mathematical
+background
+• Automatic processing operations
+(reconstruction, segmentation, etc.)
+• Generative modeling, editing and
+manipulation
+• Deep learning techniques
+
+9
+
+3D shape representations
+• Point clouds
+• Polygon soups
+• Polygon meshes
+• Parametric surfaces
+• Boundary representations (b-reps)
+• Implicit surfaces
+• Medial axis
+10
+
+Point clouds
+http://en.wikipedia.org/wiki/Point_cloud
+
+Array of 3D points
+((x0, y0, z0),
+(x1, y1, z1),
+…
+(xn-1, yn-1, zn-1))
+11
+
+Point clouds
+• Often raw output of 3D scanners
+• Points can be extended to primitives that locally
+approximate surface, e.g. ellipses
+• Advantages
+– Simple data structure (list of coordinates, or primitives)
+– Render via rasterization (e.g. splatting, draw small
+ellipse per point)
+• Disadvantages
+– Not continuous
+– No notion of topology
+– Need additional structure to apply mathematical
+operations (compute normals, etc.)
+12
+
+Polygon soup
+• Array of separate polygons
+
+13
+
+Polygon soup
+• Often default output of 3D modeling
+programs
+• Advantages
+– Simple data structure
+– Render via rendering pipeline, rasterization
+
+• Disadvantages
+– Not continuous
+– No notion of topology
+– Not possible to define „watertight“ surfaces
+14
+
+Polygon meshes
+• Polygons and how they are connected to a
+mesh
+• Consist of vertices, edges, faces, and their
+adjacencies
+Vertex
+
+Edge
+
+Face
+
+http://en.wikipedia.org/wiki/Polygon_mesh
+15
+
+Polygon meshes
+• Face-vertex tables
+– Other data structures possible (e.g., winged-edge
+data structure https://en.wikipedia.org/wiki/Winged_edge
+
+x,y,z Optional,
+often omitted
+http://en.wikipedia.org/wiki/Polygon_mesh
+
+16
+
+Polygon meshes
+• Main representation used in this class
+• Advantages
+– Render via rasterization
+– Can make continuous and watertight surfaces
+(no cracks nor gaps)
+– Includes topology
+– Easy to make complex shapes
+
+• Disadvantages
+– Not smooth
+– But: can obtain smoothness via subdivision
+http://en.wikipedia.org/wiki/Subdivision_surface
+
+17
+
+Parametric surfaces
+
+2D parameter domain
+
+Alternative notation: three separate functions
+x: R2 → R3, y: R2 → R3, z: R2 → R3
+18
+
+Example: parametric sphere
+• Spherical angles θ (elevation), φ (azimuth)
+• Radius r, center x0, y0, z0
+
+(π,2π)
+
+z
+
+θ
+
+(0,0)
+
+φ
+
+2D parameter domain
+
+y
+
+x
+19
+
+Parametric surfaces
+• Most CAD programs built on parametric surfaces
+– NURBs (non-uniform rational b-splines)
+http://en.wikipedia.org/wiki/Non-uniform_rational_B-spline
+
+• Advantages
+
+– With explicit definition of functions f, many
+mathematical operations (e.g., derivatives) and
+properties (e.g., continuity) well defined
+– Convenient for manual modeling
+
+• Disadvantages
+
+– Given arbitrary shape, fitting parametric surface is
+non-trivial
+– Complex shapes require stitching together multiple
+parametric patches
+– Some editing operations such as cutting, merging
+complicated to implement
+20
+
+Boundary representations
+http://en.wikipedia.org/wiki/Boundary_representation
+
+• Consists of connected vertices, edges, faces
+• Faces can be
+– Planar polygons, such as triangles
+– Curved parametric patches (NURBS)
+
+• Edges can be
+
+– Straight line segments
+– Smooth curves
+
+Vertex
+Edge
+Face
+
+21
+
+Implicit surfaces
+• 2D example
+
+f (x,y) = 0
+
+• Curve defined by function
+f : R2 ->R
+as set of points
+{(x,y) : f(x,y) = 0}
+y
+
+x
+
+22
+
+Implicit surfaces
+• 3D visualization, where f : R3 ->R
+f (x,y,z) = 0
+f (x,y,z) < 0
+
+f (x,y,z) > 0
+
+z
+
+y
+
+x
+
+23
+
+Example: implicit sphere
+• Radius r, center x0, y0, z0
+• Points on sphere given by set
+{(x,y,z) : (x- x0)2 + (y- y0)2 + (z- z0)2 - r2 = 0}
+
+24
+
+Implicit surfaces
+• Many alternatives to represent implicit function f
+– Splines (grid of control points with polynomial
+interpolation)
+– Neural networks, etc.
+
+• Advantages
+
+– With explicit definition of functions f, many
+mathematical operations (e.g., derivatives) and
+properties (e.g., continuity) well defined
+– Editing operations such as cutting, merging easy to
+implement
+
+• Disadvantages
+
+– For rendering, usually conversion to triangle mesh
+needed; otherwise using ray casting
+http://en.wikipedia.org/wiki/Ray_casting
+
+– Given arbitrary shape, fitting implicit surface nontrivial
+25
+
+Medial axis/surface
+• Medial axis (2D shapes): set of all points having more
+than one closest point on the object's boundary
+• Medial axis with associated radius function of the
+maximally inscribed discs is called medial axis
+transform (MAT)
+• MAT can be used to reconstruct original shape
+Object boundary
+Medial axis
+Maximally inscribed disc
+
+26
+
+Medial axis/surface
+• Medial surfaces of 3D objects can be
+complicated, non-trivial to compute
+http://lgg.epfl.ch/publications/2010/discrete_scale_axis_26_04_2010.pdf
+
+Medial surface
+27
+
+Medial axis/surface
+• Advantages
+– Useful for shape analysis
+
+• Disadvantages
+– Non-trivial to compute
+– Need to convert to other representation via
+MAT for rendering
+
+28
+
+Summary
+
+Representation Topology/
+watertight
+
+Smoothness
+
+Rendering
+
+Main
+applications
+
+Point cloud
+
+No
+
+No
+
+Rasterization,
+ray casting
+
+3D scanning,
+rendering,
+shape analysis
+
+Polygon soup
+
+No
+
+No
+
+Rasterization,
+ray casting
+
+Rendering
+
+Polygon mesh
+
+Yes
+
+Via subdivision Rasterization,
+ray casting
+
+Interactive
+modeling,
+rendering,
+simulation,
+manufacturing
+
+Parametric
+
+Yes
+
+Yes
+
+Ray casting,
+via conversion
+to meshes
+
+Interactive
+modeling, CAD
+
+Implicit
+
+Yes
+
+Yes
+
+Ray casting,
+via conversion
+to meshes
+
+Interactive
+modeling
+
+Medial axis
+
+Yes
+
+Yes
+
+Via conversion
+to meshes
+
+Analysis
+29
+
+Shape representations and neural networks
+• Which representations could benefit from
+using neural networks to define shapes?
+How?
+• Which shape representations would be
+suitable to be used as inputs or output of
+neural networks? Pros/cons?
+
+30
+
+Summary
+• Different representations have different
+advantages/disadvantages
+– No single, definite answer what is best
+
+• Conversion between representations
+possible, but not always trivial
+• Will see some examples later in course
+
+31
+
+

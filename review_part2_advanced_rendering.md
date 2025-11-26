@@ -1,0 +1,529 @@
+# Part 2: Advanced Rendering Techniques
+
+## Table of Contents
+1. [BRDF and Reflection Integral](#brdf-and-reflection-integral)
+2. [Rendering Equation](#rendering-equation)
+3. [Advanced Sampling Techniques](#advanced-sampling-techniques)
+4. [Bidirectional Path Tracing (BDPT)](#bidirectional-path-tracing)
+5. [Participating Media and Subsurface Scattering](#participating-media)
+
+---
+
+## BRDF and Reflection Integral
+
+### BRDF Definition
+
+**Bidirectional Reflectance Distribution Function:**
+```
+f_r(x, ω_i → ω_o) = dL_o(x, ω_o) / (L_i(x, ω_i) cos θ_i dω_i)
+```
+
+**Physical Interpretation:**
+- Ratio of outgoing radiance to incoming irradiance
+- Describes how light reflects at a surface point
+
+### Key BRDF Properties
+
+#### 1. Reciprocity (Helmholtz Reciprocity)
+```
+f_r(ω_i → ω_o) = f_r(ω_o → ω_i)
+```
+- Light path is reversible
+- Based on physics (time-reversal symmetry)
+
+#### 2. Energy Conservation
+```
+∫_hemisphere f_r(ω_i → ω_o) cos θ_i dω_i ≤ 1
+```
+- Cannot reflect more energy than received
+- Equality holds for perfect reflectors
+
+#### 3. Positivity
+```
+f_r(ω_i → ω_o) ≥ 0
+```
+- BRDF values are always non-negative
+
+### Reflection Integral
+
+**Outgoing radiance from reflection:**
+```
+L_o(x, ω_o) = ∫_hemisphere f_r(x, ω_i → ω_o) L_i(x, ω_i) cos θ_i dω_i
+```
+
+**Coordinate System:**
+- Use local coordinate frame aligned with surface normal
+- Spherical coordinates: (θ, φ) where θ is angle from normal
+
+### Common BRDF Models
+
+#### 1. Lambertian (Diffuse)
+```
+f_r = ρ_d / π
+```
+- Constant BRDF (independent of direction)
+- ρ_d: diffuse albedo (reflectance), fraction of reflected over incoming light
+- Perfectly matte surface
+- Reflection equation: L_o = ρ_d/π × ∫_hemisphere L_i cos θ_i dω_i
+
+#### 2. Perfect Specular Reflection (Mirror)
+- BRDF involves Dirac delta function
+- Reflection: ω_o = reflect(ω_i, n)
+- f_r(ω_i → ω_o) = δ(ω_o - reflect(ω_i, n))
+
+#### 3. Perfect Specular Refraction
+- Snell's law: n₁ sin θ₁ = n₂ sin θ₂
+- BRDF involves Dirac delta function
+- Total internal reflection when critical angle exceeded
+
+#### 4. Torrance-Sparrow (Microfacet Model)
+```
+f_r = k_d f_lambert + k_s D(ω_h) F(ω_i, ω_o) G(ω_i, ω_o) / (4 cos θ_i cos θ_o)
+```
+- D: Normal Distribution Function (microfacet orientation)
+- F: Fresnel term (reflectance at interface)
+- G: Geometry term (shadowing/masking)
+- ω_h: Half-vector between ω_i and ω_o
+
+**Blinn Microfacet Distribution:**
+- D(ω_h) ∝ (cos θ_h)^e where e is shininess coefficient
+- Used for importance sampling specular highlights
+
+#### 5. Phong Model
+- Not physically plausible, may violate energy conservation
+- f_r = k_d (ρ_d/π) + k_s (n+2)/(2π) (cos α)^n
+
+### Practice Problem 1
+
+**Question:** For a Lambertian surface with albedo ρ_d = 0.8, illuminated by uniform radiance L_i = 1.0 from the hemisphere above, what is the outgoing radiance in the normal direction?
+
+**Solution:**
+- BRDF: f_r = ρ_d / π = 0.8 / π
+- Reflection integral: L_o = ∫ f_r L_i cos θ_i dω_i
+- For uniform L_i: L_o = f_r L_i ∫ cos θ_i dω_i
+- ∫_hemisphere cos θ_i dω_i = ∫_0^(π/2) ∫_0^(2π) cos θ sin θ dθ dφ = π
+- L_o = (0.8/π) × 1.0 × π = **0.8**
+
+**Key insight:** For Lambertian, outgoing radiance = albedo × average incoming radiance
+
+---
+
+## Rendering Equation
+
+### Full Rendering Equation
+
+```
+L_o(x, ω_o) = L_e(x, ω_o) + ∫_hemisphere f_r(x, ω_i → ω_o) L_i(x, ω_i) cos θ_i dω_i
+```
+
+**Components:**
+- **L_e**: Emitted radiance (light sources)
+- **L_i**: Incoming radiance (from other surfaces)
+- **f_r**: BRDF (surface reflection)
+- **cos θ_i**: Cosine term (projected area)
+
+### Recursive Nature
+
+The rendering equation is **recursive**:
+- L_i at point x comes from L_o at other points
+- This creates infinite recursion (light bounces)
+
+**Operator Form:**
+```
+L = L_e + T L
+```
+Where T is the transport operator.
+
+**Solution:**
+```
+L = (I - T)^(-1) L_e = Σ_{k=0}^∞ T^k L_e
+```
+
+**Physical Interpretation:**
+- k=0: Direct illumination (L_e)
+- k=1: One bounce
+- k=2: Two bounces
+- ... (infinite bounces)
+
+### Solving the Rendering Equation
+
+#### 1. Path Tracing (Forward)
+- Start from camera
+- Trace paths backward
+- Sample light sources and BRDF
+
+#### 2. Light Tracing (Backward)
+- Start from light sources
+- Trace paths forward
+- Connect to camera
+
+#### 3. Bidirectional Path Tracing
+- Build paths from both camera and light
+- Connect paths in the middle
+
+### Three-Point Form
+
+**Alternative formulation using geometry:**
+```
+L_o(x → y) = L_e(x → y) + ∫_surface f_r(x, y' → y) L_o(y' → x) G(y' ↔ x) dA(y')
+```
+
+**Geometry Term:**
+```
+G(y' ↔ x) = V(y' ↔ x) cos θ_x cos θ_y' / ||x - y'||²
+```
+- V: Visibility function (1 if visible, 0 if occluded)
+- Accounts for distance and angles
+
+**Advantages:**
+- Explicitly handles occlusion
+- More suitable for some algorithms (e.g., photon mapping)
+
+### Practice Problem 2
+
+**Question:** Derive the three-point form from the standard rendering equation.
+
+**Solution:**
+
+Start with standard form:
+```
+L_o(x, ω_o) = L_e(x, ω_o) + ∫_hemisphere f_r(x, ω_i → ω_o) L_i(x, ω_i) cos θ_i dω_i
+```
+
+Change of variables: dω_i = (cos θ_y' / ||x - y'||²) dA(y')
+- Solid angle to area element
+- y' is the point in direction ω_i from x
+
+Substitute:
+```
+L_o(x, ω_o) = L_e(x, ω_o) + ∫_surface f_r(x, y' → y) L_i(x, y') (cos θ_x cos θ_y' / ||x - y'||²) dA(y')
+```
+
+L_i(x, y') comes from L_o(y' → x), and we need visibility:
+```
+L_i(x, y') = V(y' ↔ x) L_o(y' → x)
+```
+
+Therefore:
+```
+L_o(x → y) = L_e(x → y) + ∫_surface f_r(x, y' → y) L_o(y' → x) V(y' ↔ x) (cos θ_x cos θ_y' / ||x - y'||²) dA(y')
+```
+
+Which is the three-point form with G(y' ↔ x) = V(y' ↔ x) (cos θ_x cos θ_y' / ||x - y'||²).
+
+---
+
+## Advanced Sampling Techniques
+
+### Surface Form of Reflection Equation
+
+**Change of variables:** From solid angle to surface area integration
+
+**Geometry term:**
+```
+G(x ↔ y) = V(x ↔ y) (cos θ_x cos θ_y) / ||x - y||²
+```
+
+Where:
+- V(x ↔ y): Visibility function (1 if visible, 0 if occluded)
+- θ_x, θ_y: Angles between surface normals and direction x→y
+
+**Surface form:**
+```
+L_o(x, ω_o) = L_e(x, ω_o) + ∫_surface f_r(x, y → x) L_o(y → x) G(x ↔ y) dA(y)
+```
+
+**Advantages:**
+- Explicitly handles occlusion
+- More suitable for some algorithms (photon mapping, BDPT)
+
+### Multiple Importance Sampling (MIS)
+
+**Problem:** Different sampling strategies work well in different scenarios:
+- **BSDF sampling**: Good for glossy surfaces
+- **Light sampling**: Good when light is small
+- How to combine them?
+
+**Naive approach:** Average both (F_BSDF + F_light)/2
+- Variance bounded by larger variance of two techniques
+
+**MIS Solution:** Weighted average with optimal weights
+
+**MIS Estimator:**
+```
+Î = (1/N) Σ_{i=1}^M Σ_{j=1}^{N_i} w_i(X_{i,j}) f(X_{i,j}) / p_i(X_{i,j})
+```
+
+Where:
+- M: number of strategies
+- N_i: samples from strategy i
+- p_i: PDF of strategy i
+- w_i: Weight for strategy i
+
+**Requirement:** Partition of unity: Σ_i w_i(x) = 1
+
+#### Balance Heuristic
+
+**Weight:**
+```
+w_i(x) = p_i(x) / Σ_j p_j(x)
+```
+
+**Properties:**
+- Unbiased estimator
+- Provable variance reduction
+- Simple to implement
+
+#### Power Heuristic
+
+**Weight:**
+```
+w_i(x) = [p_i(x)]^β / Σ_j [p_j(x)]^β
+```
+
+Typically β = 2.
+
+**Advantage:** More aggressive weighting, further variance reduction
+
+**Implementation:**
+- Need to compute probability densities for each sample under all strategies
+- Convert between surface area and solid angle densities: p_solid_angle = p_area / (cos × r²)
+
+### Practice Problem 3
+
+**Question:** Estimate the reflection integral for a surface where:
+- BRDF is moderately glossy
+- Light source is small but bright
+- We take 1 sample from BRDF (p₁) and 1 sample from light (p₂)
+- f/p₁ = 10, f/p₂ = 2
+
+Compute MIS estimate using balance heuristic.
+
+**Solution:**
+
+**Sample 1 (BRDF):**
+- p₁(X₁) = 0.1, p₂(X₁) = 0.01
+- w₁(X₁) = 0.1 / (0.1 + 0.01) = 0.909
+- Contribution: w₁(X₁) × (f/p₁) = 0.909 × 10 = 9.09
+
+**Sample 2 (Light):**
+- p₁(X₂) = 0.05, p₂(X₂) = 0.2
+- w₂(X₂) = 0.2 / (0.05 + 0.2) = 0.8
+- Contribution: w₂(X₂) × (f/p₂) = 0.8 × 2 = 1.6
+
+**MIS Estimate:** Î = (1/2) × (9.09 + 1.6) = **5.345**
+
+**Comparison:**
+- BRDF only: Î = 10 (high variance)
+- Light only: Î = 2 (high variance)
+- MIS: Î = 5.345 (lower variance by combining both)
+
+### Beyond Uniform Random Sampling
+
+#### 1. Quasi-Monte Carlo (QMC)
+- Use low-discrepancy sequences (Halton, Sobol)
+- Better convergence: O((log N)^d / N) vs O(1/√N)
+- Deterministic (not random)
+
+#### 2. Stratified Sampling
+- Divide domain into strata
+- Sample uniformly in each stratum
+- Reduces variance by ensuring coverage
+
+#### 3. Metropolis Sampling
+- Markov Chain Monte Carlo (MCMC)
+- Good for complex, high-dimensional distributions
+- Used in some advanced rendering algorithms
+
+---
+
+## Bidirectional Path Tracing (BDPT)
+
+### Motivation
+
+**Limitations of unidirectional path tracing:**
+- Camera path: Good for small lights (hard to hit)
+- Light path: Good for small camera (hard to hit)
+- **BDPT combines both!**
+
+### Algorithm Overview
+
+1. **Build eye subpath:** x₀ (camera) → x₁ → ... → xₖ
+2. **Build light subpath:** y₀ (light) → y₁ → ... → yₗ
+3. **Connect subpaths:** Connect xₖ to yₗ
+4. **Weight contributions:** Use MIS to weight different connection strategies
+
+### Path Contribution
+
+**Full path:** x₀ → x₁ → ... → xₖ → yₗ → ... → y₁ → y₀
+
+**Contribution:**
+```
+C = L_e(y₀ → y₁) × [Π G and f_r terms] × W_e
+```
+
+Where W_e is the pixel filter weight.
+
+### Connection Strategies
+
+For a path with k eye vertices and l light vertices:
+
+**Strategy s:** Connect eye vertex s to light vertex (k+l-s)
+
+**All strategies:**
+- s = 0: Direct connection (camera to light)
+- s = 1: Connect after 1 eye bounce
+- ...
+- s = k: Connect after k eye bounces (standard path tracing)
+- s = k+1: Connect after 1 light bounce
+- ...
+
+### MIS Weighting in BDPT
+
+Each connection strategy is a sampling technique. Use MIS to combine:
+```
+Î = Σ_s w_s C_s
+```
+
+Where w_s uses balance or power heuristic over all strategies.
+
+### Advantages
+
+1. **Handles difficult cases:** Small lights, caustics, complex illumination
+2. **Unbiased:** All strategies are valid
+3. **Efficient:** Reuses subpaths for multiple connections
+
+### Practice Problem 4
+
+**Question:** For a scene with a small light and a mirror, explain why BDPT performs better than unidirectional path tracing.
+
+**Solution:**
+
+**Unidirectional Path Tracing (camera start):**
+- Hard to hit small light directly
+- Mirror creates caustics (focused light paths)
+- Need many samples to capture these effects
+
+**BDPT:**
+- Light subpath can start from light and bounce off mirror
+- Eye subpath starts from camera
+- Connect them in the middle
+- **Much more efficient** at capturing caustics and small light contributions
+
+**Example:** Light → Mirror → Diffuse Surface → Camera
+- Unidirectional: Very unlikely to sample this path
+- BDPT: Light subpath: Light → Mirror, Eye subpath: Camera → Diffuse, Connect: Mirror ↔ Diffuse
+- **Much higher probability** of finding this path
+
+---
+
+## Participating Media and Subsurface Scattering
+
+### Participating Media
+
+**Definition:** Volumes that absorb, emit, and scatter light (e.g., fog, smoke, clouds).
+
+### Volume Rendering Equation
+
+```
+L(x, ω) = L_0(x₀, ω) T(x₀ → x) + ∫_0^d L_s(x', ω) T(x' → x) dt
+```
+
+**Components:**
+- **L_0**: Radiance entering volume
+- **T**: Transmittance (fraction of light that survives)
+- **L_s**: Source term (emission + in-scattering)
+
+### Transmittance
+
+**Definition:**
+```
+T(x → y) = exp(-∫_x^y σ_t(s) ds)
+```
+
+Where σ_t is the **extinction coefficient** (absorption + out-scattering).
+
+**Physical meaning:** Probability that light travels from x to y without being absorbed or scattered.
+
+### Source Term
+
+```
+L_s(x, ω) = L_e(x, ω) + σ_s(x) ∫_sphere p(ω' → ω) L_i(x, ω') dω'
+```
+
+- **L_e**: Emission
+- **σ_s**: Scattering coefficient
+- **p**: Phase function (scattering distribution)
+
+### Phase Function
+
+Describes angular distribution of scattered light.
+
+**Isotropic:** p(ω' → ω) = 1/(4π) (uniform)
+
+**Henyey-Greenstein:**
+```
+p(cos θ) = (1 - g²) / [4π (1 + g² - 2g cos θ)^(3/2)]
+```
+- g ∈ [-1, 1]: anisotropy parameter
+- g > 0: forward scattering
+- g < 0: backward scattering
+
+### Subsurface Scattering
+
+**Definition:** Light enters a material, scatters internally, then exits at a different point.
+
+**BSSRDF (Bidirectional Scattering-Surface Reflectance Distribution Function):**
+```
+S(x_i, ω_i, x_o, ω_o) = dL_o(x_o, ω_o) / (dΦ_i(x_i, ω_i))
+```
+
+**Difference from BRDF:**
+- BRDF: Same point (x_i = x_o)
+- BSSRDF: Different points (x_i ≠ x_o)
+
+### Dipole Model
+
+**Approximation for subsurface scattering:**
+- Model material as semi-infinite half-space
+- Place virtual light sources (dipole) below surface
+- Compute radiance using diffusion approximation
+
+**Key parameters:**
+- **σ_a**: Absorption coefficient
+- **σ_s**: Scattering coefficient
+- **σ_t = σ_a + σ_s**: Extinction coefficient
+- **Albedo**: α = σ_s / σ_t
+
+### Practice Problem 5
+
+**Question:** Light travels through fog with extinction coefficient σ_t = 0.1 m⁻¹. What fraction of light survives after traveling 10 meters?
+
+**Solution:**
+
+**Transmittance:**
+```
+T = exp(-σ_t × d) = exp(-0.1 × 10) = exp(-1) ≈ 0.368
+```
+
+**Answer:** About **36.8%** of light survives.
+
+**Follow-up:** What distance results in 50% transmittance?
+- 0.5 = exp(-0.1 × d)
+- d = -ln(0.5) / 0.1 = 0.693 / 0.1 = **6.93 meters**
+
+---
+
+## Summary: Part 2 Key Takeaways
+
+1. **BRDF** models surface reflection; must satisfy reciprocity and energy conservation
+2. **Rendering equation** is recursive and describes global illumination
+3. **MIS** combines multiple sampling strategies to reduce variance
+4. **BDPT** builds paths from both camera and light for better efficiency
+5. **Participating media** requires volume rendering equation with transmittance
+6. **Subsurface scattering** uses BSSRDF to model light transport inside materials
+
+---
+
+**Next:** [Part 3: Neural Rendering](review_part3_neural_rendering.md) | [Previous: Part 1](review_part1_fundamentals.md) | [Back to Index](REVIEW_INDEX.md)
+

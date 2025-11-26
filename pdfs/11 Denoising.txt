@@ -1,0 +1,616 @@
+CMSC740
+Advanced Computer Graphics
+
+Fall 2025
+Matthias Zwicker
+
+Background terminology
+The course assumes you are familiar with the following terms. If you
+are not, you should read up on these via Wikipedia, chatbots, etc.
+• (Artificial) neuron
+– Weights, bias, activation function
+
+• Neural network architectures
+
+– Layers, hidden layers
+– Convolutional neural networks
+
+• Normalization
+
+– Batch normalization
+
+• Supervised learning
+
+– Loss functions, including L2 loss, L1 loss
+– Training data
+
+• Stochastic gradient descent
+
+– Automatic differentiation/backpropagation
+– Adam
+
+2
+
+Deep learning/AI in graphics
+• What problems can we address?
+• What is special about deep learning? Why
+is it useful compared to other techniques?
+• Limitations of deep learning/AI
+techniques?
+
+3
+
+Problems we’d like to address
+with deep learning
+In computer graphics/vision
+• Image/video -> class label
+• Image/video -> set of 2D regions containing objects
+• Image/video -> text description
+• Image/video -> 3D geometry
+• Low quality image -> high quality image
+• Text description -> 3D object
+• Text description -> video
+Others
+• Text in one language -> Translation to other language
+• Text question -> answer
+• Information about an environment (e.g. sensor data) -> best action
+of an agent to reach a goal
+• Etc.
+Abstractly: find mapping from complex, high-dimensional inputs to
+complex, high-dimensional outputs
+4
+
+Deep neural networks
+• Powerful type of non-linear functions
+– Specific function given by (potentially huge,
+billions) number of parameters (weights, biases)
+– Can approximate any input-output relationship
+by finding suitable parameters (universal
+approximation theorm) https://en.wikipedia.org/wiki/Universal_approximation_theorem
+– Work with high-dimensional inputs, outputs
+– Work with “brute force”, raw data
+representations (e.g., image/video as long vector
+of pixel values)
+
+• Alternative types of non-linear functions?
+5
+
+Deep neural networks
+• Basic computational element: artificial
+neurons
+– Inputs xi, output ypred
+– Defined by weights wi, bias b, activation function f
+– Parameters to be optimized: weights, biases
+
+6
+
+Deep neural networks
+• Organized in layers
+
+– Thousands to millions
+of neurons per layer
+– Dozens to hundreds of layers (interior
+layers called hidden layers)
+Input
+– Billions to trillions of connections
+(weights)
+– Connections between layers, within
+layers, or across layers
+(skipping layers inbetween)
+
+• Architectures (how neurons are connected)
+–
+–
+–
+–
+–
+
+Layer
+
+Neuron
+
+Output
+Connections
+Multiple
+channels per
+layer
+
+Multilayer perceptrons (MLPs)
+Convolutional neural networks (CNNs)
+Residual networks
+Transformers, multi-head attention
+Etc.
+
+7
+
+Supervised learning
+• Training data: set of corresponding pairs of desired
+inputs and outputs (e.g., image, text description,
+etc.)
+• Objective: Find mapping (function) that
+fits/approximates training data; i.e., map each input
+to corresponding known output in training data
+– Minimize scalar loss function to quantify quality of
+fit/approximation
+
+• Questions/challenges?
+–
+–
+–
+–
+
+Collecting training data
+Mathematical form of mapping, loss function
+How to represent input, output
+How to find mapping function that achieves objective
+(minimizes loss)
+8
+
+Stochastic gradient descent
+• Simple algorithm to find function parameters
+(weights, biases), given training data and loss
+function
+
+– Loss function: quantify difference between training data
+(desired outputs) and network outputs as scalar number
+
+• Iteratively
+
+– Compute gradient of loss function wrt. function
+parameters (weights, biases), using random (stochastic)
+subset (batch) of training data
+– Gradient: vector of same length as parameters, gives
+small change for each parameter that will reduce loss the
+most
+– Update parameters using gradient
+
+• Advantages/disadvantages/alternatives?
+
+9
+
+Backpropagation
+• Algorithm to compute gradient of neural
+network computations using automatic
+differentiation
+• Automatic differentiation: algorithm for
+automatically computing derivatives of
+arbitrary concatenation of elementary
+functions (with known derivatives) using
+chain rule
+
+– Implemented using software libraries that
+maintain data structures, intermediate results to
+calculate chain rule “in the background”,
+without user requiring to add much code
+10
+
+(Mostly) open questions
+• Generalization: how to characterize behavior
+of mapping function on inputs not seen in
+training data?
+• Robustness: how to ensure that small
+changes in inputs or training data preserve
+accuracy of mapping function?
+• Architecture design: given training data, how
+to characterize network architectures that
+will work well (accuracy on training data,
+generalization, robustness)?
+11
+
+Recap
+• Rendering equation
+• Monte Carlo path tracing
+• (Multiple) importance sampling
+– Bidirectional path tracing
+
+• Advanced appearance models
+– BRDFs/BSDFs/BSSRDFs to model specific
+materials
+
+• Participating media
+12
+
+The good
+• Simulate light transport in a physically accurate
+(in relation to human perception) manner
+• Include complex material appearance models,
+complex geometry
+• Generate photorealistic images (with sufficient
+modeling effort and render time)
+
+https://corona-renderer.com/gallery
+
+13
+
+The bad
+• Noise/variance, slow convergence, O(1/sqrt(n)
+
+55 sec, 32 spp, 12 threads
+
+100 sec, 128 spp, 12 threads
+
+http://cgg.unibe.ch/data/PG2013/
+
+14
+
+The solution?
+
+?
+
+15
+
+The solution?
+
+?
+
+16
+
+Image-to-image translation
+Clean
+
+Noisy
+
+Input image
+
+Deep neural
+network
+
+Various applications see
+
+Output
+image
+
+https://phillipi.github.io/pix2pix/
+
+Neural network architectures suitable
+for image-to-image translation?
+17
+
+DnCNN: straightforward denoising
+with deep CNNs
+•
+•
+•
+•
+•
+•
+•
+•
+
+“Beyond a Gaussian Denoiser: Residual Learning of Deep CNN for Image Denoising”, Zhang
+et al., 2016
+Training data: pairs of noisy/clean images (add known noise to clean images)
+https://github.com/cszn/DnCNN
+
+20 layers, 64 3x3 convolution filters in each layer (64 channels per layer)
+Batch normalization (additional computation to scale, shift outputs of each layer to zero
+mean, unit variance in each training batch)
+Predict residual (known noise) instead of pixel value
+L2 loss: for each pixel, square of difference between ground truth and network output;
+sum over all pixels, (no adversarial, L1, or feature loss)
+No downsampling/upsampling, no skip connections
+Train/optimize weights, biases on multiple noise levels
+
+Conv: convolutional layer; BN: batch normalization; ReLU: rectified linear activation fct.
+
+18
+
+DnCNN
+
+Accuracy
+
+• Ablation study (comparison among different design decisions)
+• Epoch: number of passes through entire training data set
+during gradient descent
+
+Training progress
+Stochastic gradient descent
+
+Adam (adaptive moment
+estimation) optimizer,
+improved version of SGD
+19
+
+DnCNN
+
+20
+
+Denoising, generic approach
+• Noisy pixel values cp at each pixel p
+• Denoising: replace each pixel with weighted average over
+neighor pixels cq
+q
+p
+
+Np
+
+– Weights should be 0<w<1, add up to one, (square) neighborhood Np
+
+• Assuming pixels cq are independent random variables
+– Variance
+
+Variance reduction
+
+– Expected value, if cq are i.i.d (independent, identically
+distributed, https://en.wikipedia.org/wiki/Independent_and_identically_distributed_random_variables)
+
+21
+
+Denoising, classical approach
+• Example: box filter, wpq = 1/|N(p)|
+
+– Variance reduction by 1/|N(p)|
+– Larger filter (larger size of neighborhood |N(p)|)
+leads to more variance reduction
+– But: bias (pixels are not i.i.d in practice, i.e.
+E[cp] ≠ E[cq], hence box filter changes expected
+value of pixel, in general), causes blur
+
+• Goal: techniques to determine filter weights
+in range 0<w<1, such that bias is avoided
+• Ideas?
+– Make wpq high if expected pixel values E[cp] and
+E[cq] are similar, otherwise, make wpq low
+
+22
+
+Denoising using kernel prediction
+• “Kernel-Predicting Convolutional Networks for
+Denoising Monte Carlo Renderings”, Bako et al., 2017
+• Predict weights wpq (“kernel”) in neighborhood of each
+pixel using neural network
+• Other ideas to improve performance of denoising in the
+case of Monte Carlo rendered images?
+
+23
+
+CNN to denoise Monte Carlo renderings
+“Kernel-Predicting Convolutional Networks for Denoising
+Monte Carlo Renderings”, Bako et al., 2017
+
+Any per-pixel data
+produced by renderer that
+may be useful for
+denoising (depth, normals,
+BRDF parameters)
+
+Bako et al., SIGGRAPH 2017
+http://cvc.ucsb.edu/graphics/Papers/SIGGRAPH2017_KPCN/
+
+24
+
+Specialties (vs usual denoising CNNs)
+• Take advantage of additional information
+(besides RGB) produced by renderer
+– Additional per-pixel input channels (normal,
+depth, BRDF parameters) stacked together
+with RGB colors
+
+• Diffuse/specular separation of input
+– Diffuse: albedo divide
+– Specular: color-luminance separation, logtransform
+25
+
+Specialties (vs usual denoising CNNs)
+Denoising kernel prediction
+• Network output at each pixel p is k x k vector zLp
+• Weight for pixel q in filter of pixel p
+
+• Filtered output at pixel p
+
+Ensure weight
+normalization
+(sum to 1)
+
+• Advantage: can prove faster training convergence
+in simplified case; better generalization in
+practice
+26
+
+Network, training & test data
+Network
+• 8 hidden layers, 100 convolution kernels (channels) of
+5×5 in each layer
+• L1 loss (for each pixel, absolute difference between
+network output and ground truth, sum over all pixels)
+Training data
+• 600 frames from movie “Finding Dori”
+– Noisy: 32 spp
+– Reference: 1024 spp
+
+Test data
+• 25 frames from other movies
+
+– Mmotion blur, depth of field, glossy reflections, and
+global illumination
+27
+
+Results
+
+Bako et al., SIGGRAPH 2017
+http://cvc.ucsb.edu/graphics/Papers/SIGGRAPH2017_KPCN/
+
+28
+
+Denoising animations
+• Frame-by-frame denoising leads to
+temporal flickering in animations
+• Need to filter in 3D space-time
+• How to implement this with CNNs?
+
+29
+
+Improvement of Bako et al. 2017
+• “Denoising with Kernel Prediction and Asymmetric
+Loss Functions”, Vogels et al., ACM Siggraph 2018
+– Residual blocks (avoid vanishing gradient problem,
+https://en.wikipedia.org/wiki/Vanishing_gradient_problem)
+– Modular training (source encoder, spatial-feature
+extractor, kernel predictor) allows specialization to
+different renderers with less training data
+
+Input of res. block
+added to its output,
+forming “shortcut”
+http://zurich.disneyresearch.com/~fabricer/publications/vogels-2018-kpal.pdf
+
+30
+
+Temporal denoising
+• Input 2M+1 frames simultaneously
+• Use source encoder and spatial-feature extractor
+modules pre-trained on single frames
+• Warp frames to align with reference i using
+motion vectors or optical flow
+• Predict single 21x21x(2M+1) kernel to denoise
+frame i
+
+http://zurich.disneyresearch.com/~fabricer/publications/vogels-2018-kpal.pdf
+
+31
+
+Asymmetric loss
+• Loss function l’λ
+
+– Ground truth r, network output d, noisy color c, Heaviside
+step function H, user parameter λ
+– “Penalize network outputs d more if they are on the other
+side of the reference than the noisy input c”
+
+• User can adjust λ to control bias/variance tradeoff
+
+Higher loss
+
+r c
+
+d
+
+Higher loss
+
+c
+
+r
+
+d
+
+http://zurich.disneyresearch.com/~fabricer/publications/vogels-2018-kpal.pdf
+
+32
+
+Results
+
+http://zurich.disneyresearch.com/~fabricer/publications/vogels-2018-kpal.pdf
+
+33
+
+Interactive, GPU rendering
+• Two similar products from Nvidia using
+recurrent convolutional auto-encoder
+– Auto-encoder: network that consists of
+encoder and decoder parts
+
+• Denoising for ray tracing built into Nvidia
+Optix
+https://developer.nvidia.com/optix-denoiser
+
+– Optimized for inference performance,
+milliseconds per frame
+
+• Nvidia DLSS
+
+https://www.nvidia.com/en-us/geforce/technologies/dlss/
+
+34
+
+Recurrent neural network RNN
+• Chaitanya et al, Interactive Reconstruction of
+Monte Carlo Image Sequences using a Recurrent
+Denoising Autoencoder, SIGGRAPH 2017
+http://research.nvidia.com/sites/default/files/publications/dnn_denoise_author.pdf
+
+Output of previous frame used as input of next frame
+35
+
+Specialties
+• Input to network
+– RGB colors
+– “G-buffer” with view-space shading normals
+(2D vectors), depth, material roughness
+– Divided by diffuse albedo (remove texture
+complexity from input)
+
+• Loss
+– Spatial: L1, L1 on spatial gradients
+– Temporal: L1 on temporal gradients
+36
+
+Training
+• “Back propagation through time”
+https://en.wikipedia.org/wiki/Backpropagation_through_time
+
+– Replicate feed forward parts to unroll
+recurrent connections
+
+• “Adam” SGD solver
+https://arxiv.org/pdf/1412.6980.pdf
+
+– Gradients are noisy in
+SGD
+– Compute moving
+average over SGD steps
+
+Two replicated feed forward
+steps for frame i-1, i, recurrent
+connection from i-1 to i
+
+37
+
+Results (inputs with 1spp)
+http://research.nvidia.com/sites/default/files/publications/dnn_denoise_author.pdf
+
+38
+
+Results
+• Video
+
+http://research.nvidia.com/publication/interactive-reconstruction-monte-carlo-image-sequences-using-recurrent-denoising
+
+39
+
+Computation times
+• 54.9ms for 1280×720 pixels on NVIDIA
+(Pascal) Titan X
+• OptiX-based path tracer from 70ms to
+260ms in SanMiguel for 1 spp
+https://developer.nvidia.com/optix
+
+40
+
+Deep learning for rendering
+• What else could we learn to improve
+rendering efficiency?
+– Keep more data from the renderer than 2D
+images (e.g., operate on 4D images (light
+fields), for denoising, interpolation)
+– Use image-to-image translation to add
+expensive light transport effects (global
+illumination, subsurface scattering, motion
+blur, …)
+– Learn the entire rendering function
+scene description -> neural network -> image with global illumination
+
+41
+
+Learn to importance sample
+• “Learning to Importance Sample in
+Primary Sample Space”, Zheng, Zwicker,
+2018
+https://arxiv.org/abs/1808.07840
+
+• “Neural Importance Sampling”, Muller et
+al. 2018
+https://arxiv.org/abs/1808.03856
+
+42
+
+

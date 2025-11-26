@@ -1,0 +1,1081 @@
+Learning to Importance Sample in
+Primary Sample Space
+Quan Zheng1, Matthias Zwicker 1
+1 University
+
+of Maryland, College Park, USA
+
+Slides adapted from conference presentation:
+
+The 40° Annual Conference of the European Association for Computer Graphics
+
+Motivation: Monte Carlo Rendering
+
+Emitter
+Camera
+
+Path x
+Pixel j
+
+2
+
+Motivation: Monte Carlo Rendering
+Rendering equation:
+𝐼𝐼𝑗𝑗 = � 𝑓𝑓𝑗𝑗 𝑥𝑥 𝑑𝑑𝑑𝑑 𝑥𝑥
+Ω
+integral over all light paths
+through pixel j
+𝑁𝑁
+
+𝑓𝑓𝑗𝑗 𝑥𝑥𝑖𝑖
+where 𝑥𝑥𝑖𝑖 is a random sampled path
+Monte Carlo integration: 𝐼𝐼𝑗𝑗 ≈ �
+𝑝𝑝(𝑥𝑥𝑖𝑖 )
+𝑖𝑖=1
+
+Camera
+
+Emitter
+
+Path x
+Pixel j
+
+3
+
+Motivation: Importance Sampling
+ Reduce variance by designing sampling density p proportional to
+integrand f, as much as possible
+
+Variance
+
+Design density p so
+this is constant, as
+much as possible
+4
+
+Standard Importance Sampling
+ Construct paths step by step
+ In each step, choose new direction using either BSDF sampling, or
+light sampling
+Emitter
+Camera
+
+ω
+
+Pixel j
+
+probability(ω)
+∝ 𝐵𝐵𝐵𝐵𝐵𝐵𝐵𝐵
+
+BSDF importance
+sampling
+
+5
+
+Standard Importance Sampling
+ Construct paths step by step
+ In each step, choose new direction using either BSDF sampling, or
+light sampling
+probability(ω) ∝
+emission
+
+Camera
+Pixel j
+
+ω
+
+Emitter
+
+Light
+sampling
+
+6
+
+Standard Importance Sampling
+Disadvantages
+ Does not consider full complexity of integrand (importance samples at each bounce
+separately, instead of importance sampling entire paths)
+ Approximate models of BSDFs and emitters for importance sampling
+ Ignores occlusions (visibility function)
+ Does not include non-local effects such as chains of near specular reflections
+ Requires separate techniques for effects such as motion blur or depth of field
+
+7
+
+Standard Importance Sampling
+Disadvantages
+ Does not consider full complexity of integrand (importance samples at each bounce
+separately, instead of importance sampling entire paths)
+ Approximate models of BSDFs and emitters for importance sampling
+ Ignores occlusions (visibility function)
+ Does not include non-local effects such as chains of near specular reflections
+ Requires separate techniques for effects such as motion blur or depth of field
+Our goals
+ Use higher dimensional target sampling density that more accurately represents
+integrand
+ Learn how to sample from target density by leveraging neural network
+ Unified approach that treats renderer as black box, is applicable to any light transport
+effect
+
+8
+
+Related Work: Importance Sampling
+ A priori
+
+ Use analytical representations of the integrand [Clarberg05]
+
+9
+
+Related Work: Importance Sampling
+ A priori
+
+ Use analytical representations of the integrand [Clarberg05]
+
+ A posteriori
+
+ Acquire small set of “training” samples of integrand, then fit target density to
+acquired training samples
+
+
+
+
+
+Path guiding by caching [Jesen95, Hey02]
+Online learning path guiding [Vorba14, Müller17]
+Path guiding with reinforced method [Dahm17]
+Kd-tree based path guiding [Guo2018]
+
+ A combination
+
+ Bayesian approach to sample direct illumination [Vevoda18]
+
+10
+
+Related Work: Markov Chain Monte Carlo
+ Metropolis light transport (MLT) [VG97]
+ Various mutation techniques and path parameterisations
+[JM12, KHD14, LLR15]
+ Primary sample space MLT (PSSMLT) [KSKAC02]
+ Multiplexed MLT (MMLT) and combine different space
+parameterizations [HKD14, OKH17, BJNJ7]
+
+11
+
+Related Work: Deep Learning for Rendering
+ Denoise Monte Carlo rendering [BVM*17, CKS*17, VRM*18]
+ Indirect lighting approximation [RWG*13]
+ Cloud radiance prediction [KMM*17]
+ A concurrent work for importance sampling [MMR*18]
+https://arxiv.org/abs/1808.03856
+
+12
+
+Preliminaries: Primary Sample Space Integral
+Construct path via ray tracing
+x=Φ(𝑦𝑦)
+
+𝑥𝑥2
+𝑥𝑥0
+
+𝐲𝐲 = 𝑦𝑦0 , 𝑦𝑦1 , ⋯ , 𝑦𝑦7
+
+Primary sample space (PSS)
+(unit hypercube; samples of
+random number generator)
+
+Pixel j
+
+Path x
+
+𝑥𝑥1
+
+𝑥𝑥3
+
+Path space Ω, path x given by
+vertex locations xi (surface
+form of rendering equation)
+
+13
+
+Preliminaries: Primary Sample Space Integral
+Construct path via ray tracing
+x=Φ(𝑦𝑦)
+
+𝑥𝑥2
+𝑥𝑥0
+
+Pixel j
+
+Path x
+
+𝑥𝑥1
+
+𝐲𝐲 = 𝑦𝑦0 , 𝑦𝑦1 , ⋯ , 𝑦𝑦7
+
+Primary sample space (PSS)
+
+Path space Ω
+
+(unit hypercube; samples of
+random number generator)
+
+𝜕𝜕Φ(𝐲𝐲)
+𝑑𝑑𝐲𝐲
+𝐼𝐼𝑗𝑗 = � 𝑓𝑓𝑗𝑗 𝑥𝑥 𝑑𝑑𝑑𝑑 𝑥𝑥 = � 𝑓𝑓𝑗𝑗 Φ(𝐲𝐲)
+𝜕𝜕𝐲𝐲
+Ω
+𝑃𝑃𝑆𝑆𝑆𝑆
+𝑁𝑁
+
+𝑓𝑓𝑗𝑗 Φ(𝐲𝐲)
+1
+𝐼𝐼𝑗𝑗 ≈ �
+−1
+𝑁𝑁
+𝜕𝜕Φ(𝐲𝐲)
+𝑖𝑖=1
+𝜕𝜕𝐲𝐲
+
+𝑥𝑥3
+
+Path construction from primary
+samples corresponds to change
+of integration variables x=Φ(y)
+
+Importance sampling expressed as
+change of integration variables
+14
+
+Our core idea
+ Improve importance sampling using primary sample space warping Ψ
+ Non-linear warp Ψ leads to warped PSS with non-uniform density
+z
+
+Uniform PSS
+
+Ψ
+
+y
+
+Ψ −1
+
+Warped PSS,
+non-uniform density
+
+15
+
+Our core idea
+ Improve importance sampling using primary sample space warping Ψ
+ Non-linear warp Ψ leads to warped PSS with non-uniform density
+z
+
+Uniform PSS
+
+Ψ
+
+y
+
+Ψ −1
+
+Warped PSS,
+non-uniform density
+
+Φ
+
+𝑥𝑥0
+
+𝑥𝑥2
+
+𝑥𝑥1
+
+𝑥𝑥3
+
+Existing renderer,
+without modifications
+
+16
+
+Non-linear PSS warp and importance sampling
+z
+
+Uniform PSS
+𝐼𝐼𝑗𝑗 = � 𝑓𝑓𝑗𝑗 𝑥𝑥 𝑑𝑑𝑑𝑑 𝑥𝑥
+Ω
+
+=�
+
+𝑃𝑃𝑆𝑆𝑆𝑆
+
+𝑓𝑓𝑗𝑗 Φ Ψ 𝐳𝐳
+
+Warp
+Ψ
+
+Warped PSS,
+non-uniform density
+
+𝜕𝜕Ψ(𝐳𝐳) 𝜕𝜕Φ Ψ(𝐳𝐳)
+𝑑𝑑𝐳𝐳
+𝜕𝜕𝐳𝐳
+𝜕𝜕Ψ(𝐳𝐳)
+
+Chain rule
+including warp
+
+y
+
+𝑁𝑁
+
+Existing renderer
+as black box
+
+𝑓𝑓𝑗𝑗 Φ Ψ 𝐳𝐳𝑖𝑖
+1
+𝐼𝐼𝑗𝑗 ≈ �
+−1
+𝑁𝑁
+𝜕𝜕Ψ(𝐳𝐳
+)
+𝜕𝜕Φ Ψ(𝐳𝐳𝑖𝑖 )
+𝑖𝑖
+𝑖𝑖=1
+𝜕𝜕𝐳𝐳𝑖𝑖
+𝜕𝜕Ψ(𝐳𝐳𝑖𝑖 )
+
+Design Ψ to improve
+importance sampling
+
+−1
+
+17
+
+PSS target density
+ PSS target density denoted as p(y)=p(Ψ(z))
+
+Ideal goal:
+warp Ψ so that density proportional
+to each pixel integrand j in existing renderer
+
+ Goal: make it proportional to integrand in PSS
+ Challenge: each pixel has its own integrand
+
+ Simplification: one global target density, instead of per pixel
+ Using path throughput g, instead of image contribution function fj
+Throughput Pixel filter
+
+ Global target density
+
+𝑓𝑓𝑗𝑗 Φ(𝑦𝑦) = 𝑔𝑔 Φ(𝑦𝑦) ⋅ 𝑊𝑊𝑗𝑗 Φ(𝑦𝑦)
+Desired warp
+
+Practical goal:
+warp Ψ so density proportional
+to path throughput g in existing renderer
+18
+
+Challenges
+ Target density and its representation
+ Representation of the warp
+ Learning the warp
+
+19
+
+Overview
+1
+
+3
+
+2
+
+Scenes
+
+Warp
+Renderer
+
+Acquire PSS target
+density as small set
+of samples
+
+Represent warp as neural
+network, train to match
+target density
+
+Arbitrary
+number of
+warped PSS
+samples
+
+Rendering
+
+20
+
+Represent target density using set of samples
+ Build a candidate set T, uniformly sampled in PSS
+ Each sample stores value of target density
+
+ Resample a subset S from T that follows target density [TCE05
+https://dl.acm.org/doi/10.5555/2383654.2383674], sample-importance resampling
+Candidate set, uniformly distributed in PSS,
+each sample stores value of target density
+
+Resampled set, distributed
+according to target density
+
+Resample
+
+(discard samples with
+probability inversely
+proportional to target
+density)
+
+𝑇𝑇 =α ⋅ 𝑆𝑆 , α>1
+
+𝑆𝑆
+
+21
+
+Target density as invertible warp
+ Find inverse warp 𝑧𝑧 = Ψ−1 (𝑦𝑦), such that samples 𝑦𝑦 = Ψ 𝑧𝑧 follow
+distribution of target density
+Inverse warp
+z
+
+𝑧𝑧 = Ψ −1 (𝑦𝑦)
+𝑦𝑦 = Ψ(𝑧𝑧)
+
+y
+
+Forward warp
+
+Uniform density
+
+Target density
+
+22
+
+Maximum likelihood estimation
+ Inverse warp parametrized by θ
+ Consider density as function of warp parameters θ
+𝜕𝜕Ψ −1 𝑦𝑦; 𝜃𝜃
+𝑝𝑝 𝜃𝜃; 𝑦𝑦 =
+𝜕𝜕𝜕𝜕
+
+Density corresponds to determinant of
+Jacobian of mapping
+https://en.wikipedia.org/wiki/Random_variable#Functions
+_of_random_variables
+
+ Objective: find the optimal θ to maximize likelihood of samples yi of
+target density
+ “Find warp that is most likely to produce target samples”
+𝜃𝜃 ∗
+
+1
+= 𝑎𝑎𝑎𝑎𝑎𝑎 max � log 𝑝𝑝 𝜃𝜃; 𝑦𝑦𝑖𝑖
+𝜃𝜃 𝑁𝑁
+𝑖𝑖
+
+23
+
+Warp representation
+ Requirements of warp Ψ
+
+ Express complex, non-linear mappings
+ One-to-one mapping
+ Easy to invert
+ Evaluate Jacobian determinant efficiently
+
+Key idea: normalizing flows (overview see https://arxiv.org/pdf/1908.09257.pdf)
+ Represent warp as deep neural network
+ Leverage normalizing flow architecture, here ‘real NVP’, Dinh et al.,
+ICLR 2017
+ Satisfies all requirements
+
+24
+
+Real NVP
+
+Element-wise
+multiplication
+
+Input z
+
+1 0 1 0
+0 1 0 1
+
+Mask b
+
+𝑧𝑧0 , 𝑧𝑧2
+𝑧𝑧1 , 𝑧𝑧3
+
+𝑧𝑧𝑧0 , 𝑧𝑧𝑧2
+
+Coupling layer
+
+𝑧𝑧𝑧0 , 𝑧𝑧1′ , 𝑧𝑧𝑧2 , 𝑧𝑧3′
+
+𝑧𝑧0 , 𝑧𝑧1 , 𝑧𝑧2 , 𝑧𝑧3
+
+ Affine coupling layer (forward mapping)
+
+Output z’
+
+Real NVP
+
+Element-wise
+multiplication
+
+Input z
+
+1 0 1 0
+0 1 0 1
+
+Mask b
+
+𝑧𝑧0 , 𝑧𝑧2
+
+𝑧𝑧0 , 𝑧𝑧2
+
+𝑧𝑧1 , 𝑧𝑧3
+
+𝑧𝑧1′ , 𝑧𝑧3′
+
+Coupling layer
+
+𝑧𝑧0 , 𝑧𝑧1′ , 𝑧𝑧2 , 𝑧𝑧3′
+
+𝑧𝑧0 , 𝑧𝑧1 , 𝑧𝑧2 , 𝑧𝑧3
+
+ Affine coupling layer (forward mapping)
+
+Output z’
+
+Real NVP
+
+Element-wise
+multiplication
+
+Input z
+
+1 0 1 0
+0 1 0 1
+
+Mask b
+
+𝑧𝑧0 , 𝑧𝑧2
+
+𝑧𝑧0 , 𝑧𝑧2
+
+𝑧𝑧1 , 𝑧𝑧3
+
+𝑧𝑧1′ , 𝑧𝑧3′
+
+Coupling layer
+
+𝑧𝑧0 , 𝑧𝑧1′ , 𝑧𝑧2 , 𝑧𝑧3′
+
+𝑧𝑧0 , 𝑧𝑧1 , 𝑧𝑧2 , 𝑧𝑧3
+
+ Affine coupling layer (forward mapping)
+
+Output z’
+
+𝐉𝐉 = exp � 𝑠𝑠(𝑧𝑧 𝑏𝑏=1 )𝑘𝑘
+𝑘𝑘
+
+27
+
+Real NVP
+ Inverse of coupling layer
+
+ Trivial to compute due to structure of coupling layer
+ Does not require inverting functions s and t
+
+ Implementing functions s and t
+
+ Subject to few constraints
+ Neural networks
+ Warp parameters θ are trainable network weights
+
+28
+
+Achieving complicated warps
+ Multiple coupling layers
+Stack multiple affine coupling layers
+with different masks
+
+Target
+samples y
+
+Latent
+samples z
+Scale
+
+Logit
+
+Coupling
+layer
+
+Logit-1
+
+Scale-1
+
+ Training under maximum likelihood objective
+29
+
+Generating samples for rendering
+ Use forward mapping Ψ
+ Input: uniform random PSS vectors
+ Output: target PSS vectors for rendering
+Forward mapping Ψ
+
+Scale
+Input
+
+Logit
+
+affine coupling layers
+
+Logit-1
+
+Scale-1
+Output
+
+30
+
+Training details
+ Network initialization
+
+ Pretrain the neural network to achieve an identity warp
+ Reuse the trained weights as initialization
+
+ Optimization method
+
+ End-to-end scene-dependent training
+ Adam optimizer with learning rate 10−4
+ Batch size 2000
+
+31
+
+Results
+
+32
+
+Results
+ Practical simplification
+
+ Warp at most the first 3 bounces (8D warp, 6D + 2D image plane)
+ Continue to trace further bounces using uniform PSS parameters
+
+ Training dataset sizes
+
+ Epp-k (k x 200 x 160 training samples)
+
+ Training time
+
+ Ranges from 9 to 20 minutes on Nvidia GTX 1070 GPU
+ We show equal-time comparison. To see timing results, please refer to the
+paper.
+
+33
+
+Equal sample count comparison (128spp)
+ Country Kitchen scene
+Reference
+
+MSE
+
+[GBBE18]
+
+PT no warp
+
+Kdtree warp
+
+Our 4D
+
+Our 6D
+
+Our 8D
+
+0.0401
+
+0.0220
+
+0.0170
+
+0.0172
+
+0.0205
+
+Training with epp-16
+34
+
+Equal sample count comparison (128spp)
+ White Room scene
+Reference
+
+MSE
+
+[GBBE18]
+
+PT no warp
+
+Kdtree warp
+
+Our 4D
+
+Our 6D
+
+Our 8D
+
+0.2155
+
+0.1235
+
+0.0820
+
+0.0677
+
+0.0832
+
+Training with epp-16
+35
+
+Small illumination features
+ Increasing training data size improves our results, captures small
+illumination features
+Reference
+
+MSE
+
+PT no warp
+
+0.09275
+
+Training data size = epp x 1002
+
+Ours with training
+data size epp=1
+
+Ours with training
+data size epp=4
+
+Ours with training
+data size epp=64
+
+0.06863
+
+0.05701
+
+0.05038
+
+(Equal sample count 128 spp comparisons)
+
+36
+
+Distribution ray tracing
+ Pool ball with motion blur
+PT no warp
+
+Error plot
+Our 4D
+
+MSE errors
+
+Reference
+
+[GBBE18]
+Kdtree warp
+
+Training with
+epp-16
+
+Sample count
+
+37
+
+Light cluster sampling
+ Sampling light cluster for direct lighting
+
+ Natural History Museum scene with 93 emitters
+Unif. sample
+emitters
+
+Unif. sample
+clusters
+
+Ours
+
+Ours
+
+MSE errors
+
+Reference
+
+Error plot
+
+Rendering sample count
+38
+
+Rendering animation sequences
+ Network reusing to render new camera views
+ Amortize training costs over several views
+
+View 2
+10 degrees
+
+Test loss
+
+View 1
+Original
+
+Training time
+39
+
+Rendering animation sequences
+ Network reusing to render new camera views
+ Amortize training costs over several views
+
+View 3
+45 degrees
+
+Test loss
+
+View 1
+Original
+
+Training time
+40
+
+Rendering animation sequences
+ Network reusing to render new camera views
+ Amortize training costs over several views
+
+View 4
+90 degrees
+
+Test loss
+
+View 1
+Original
+
+Training time
+41
+
+Limitations
+ Computation cost
+
+ Acquiring data, and training requires orders of minutes per image
+ Related to the size of training data, and the scale of neural network
+
+ Higher dimensional warps
+
+ Experiments up to 12 dimensions
+ Require large amounts of training data, time
+ Improvements under equal sample count rendering, but prohibitive training
+cost
+
+42
+
+Conclusions
+ We proposed a novel approach to learn importance sampling
+ Leverage neural network to perform non-linear warp
+ Generalize to different tasks
+ Treat existing renderer as a black box
+ Effective to reduce variance
+
+ Why not represent radiance function directly as neural network,
+instead of probability density used for sampling?
+
+ Advantage of using probability density: can do unbiased Monte Carlo
+sampling
+ Advantage of using radiance function: may be possible to come up with
+different type of algorithm to solve the rendering equation (different from
+series expansion and Monte Carlo integration)
+43
+
+Quan Zheng, qzhengcs@cs.umd.edu
+Matthias Zwicker, zwicker@cs.umd.edu
+More information:
+https://tinyurl.com/LIS-PSS
+
+Thank you for your attention!
+44
+
+45
+
+Real NVP
+
+Output z
+
+𝑧𝑧0′ , 𝑧𝑧2′
+
+𝑧𝑧0 , 𝑧𝑧2
+
+Coupling layer
+
+1 0 1 0 Element-wise
+multiplication
+
+Mask b
+
+𝑧𝑧0′ , 𝑧𝑧1′ , 𝑧𝑧2′ , 𝑧𝑧3′
+
+𝑧𝑧0 , 𝑧𝑧1 , 𝑧𝑧2 , 𝑧𝑧3
+
+ Affine coupling layer (inverse mapping)
+
+Input z’
+
+46
+
+Real NVP
+
+Output z
+
+𝑧𝑧0 , 𝑧𝑧2
+
+𝑧𝑧0′ , 𝑧𝑧2′
+
+𝑧𝑧1 , 𝑧𝑧3
+
+𝑧𝑧1′ , 𝑧𝑧3′
+
+Coupling layer
+
+1 0 1 0 Element-wise
+0 1 0 1 multiplication
+
+Mask b
+
+𝑧𝑧0′ , 𝑧𝑧1′ , 𝑧𝑧2′ , 𝑧𝑧3′
+
+𝑧𝑧0 , 𝑧𝑧1 , 𝑧𝑧2 , 𝑧𝑧3
+
+ Affine coupling layer (inverse mapping)
+
+Input z’
+
+47
+
+Real NVP
+
+Output z
+
+𝑧𝑧0 , 𝑧𝑧2
+
+𝑧𝑧0′ , 𝑧𝑧2′
+
+𝑧𝑧1 , 𝑧𝑧3
+
+𝑧𝑧1′ , 𝑧𝑧3′
+
+Coupling layer
+
+1 0 1 0 Element-wise
+0 1 0 1 multiplication
+
+𝑧𝑧0′ , 𝑧𝑧1′ , 𝑧𝑧2′ , 𝑧𝑧3′
+
+𝑧𝑧0 , 𝑧𝑧1 , 𝑧𝑧2 , 𝑧𝑧3
+
+ Affine coupling layer (inverse mapping)
+
+Input z’
+
+Mask b
+
+𝐉𝐉 = exp − � 𝑠𝑠(𝑧𝑧 𝑏𝑏=1 )𝑘𝑘
+𝑘𝑘
+
+Note: Do not require inverse of s and t
+
+48
+
+Implementation of Functions s and t
+ Subject to few constraints
+ We design them as neural networks
+ Warp parameters θ are trainable network weights
+
+FC:
+BN:
+RBi:
+RELU:
+
+Fully-connected layer
+Batch normalization
+i-th residual block
+Rectified linear unit
+
+49
+
+Visualization of sample warping
+ Sample distribution comparison
+
+Uniform input
+
+Kd-tree warp
+
+Ours
+
+ Pool Ball scene with motion blur
+ 3D warping (image plane, time)
+
+ Comparison
+
+ Ours achieves desired density
+ Sample distribution of kd-tree
+warping is blocky
+
+50
+
+Limitations
+ Higher dimensional warp
+
+ Country Kitchen scene, 12D learning
+ Require much more training data
+ Epp 4096 dataset took 26h to train
+
+(Equal sample count 128 spp comparisons)
+
+51
+
+Rendering animation sequences
+ Network reusing to render new camera views
+ Amortize training costs over several views
+
+View 1
+Original
+
+View 2
+10 degrees
+
+View 3
+45 degrees
+
+View 4
+90 degrees
+52
+
+Rendering animation sequences
+ Network reusing
+
+ Generalize to multiple new camera views
+ Amortize spent training costs over new views
+View 3
+
+View 4
+
+Training time
+
+Training time
+
+Training time
+
+Test loss
+
+View 2
+
+53
+
+

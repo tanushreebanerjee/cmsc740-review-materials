@@ -1,0 +1,125 @@
+CMSC740
+Advanced Computer Graphics
+Matthias Zwicker
+Fall 2025
+
+Final project proposals
+• Decide on project proposal
+– Pick from suggestions or your own project, within scope of course topics
+– Topics may involve extension of Aris renderer, improved implementation
+of algorithm from paper, synthesis of techniques from several papers
+– Encourage research content, novelty
+
+• Send e-mail to instructor with your choice by Tuesday Nov. 4
+– List team members (up to two)
+– Instructor will answer questions, approve student-defined projects, etc.
+
+• Deliverables
+– Report (4-8 pages)
+– Code
+– Result images and comparisons
+
+• May work in groups of 2, need to specify division of work in report
+• Deadline: Tuesday December 13 (reading day), 11:59pm
+• Note: final exam Thursday, Dec. 18, 10:30am - 12:30pm, IRB2107
+
+2
+
+1. Advanced rendering algorithms
+• For example, advanced
+sampling strategies,
+bidirectional path
+tracing, path guiding,
+improved neural
+radiosity, etc.
+• Learn from PBRT book
+https://www.pbr-book.org/
+
+• Goals
+– Build on existing path tracing code
+– Demonstrate capabilities, improvements vs.
+simple, unidirectional path tracing
+3
+
+2. Advanced appearance model
+• Participating media, subsurface scattering,
+hair, advanced BRDF models, etc.
+• Build on existing code
+• Learn from PBRT book
+https://www.pbr-book.org/
+
+• Demonstrate using a nice scene
+
+4
+
+3. Geometry processing using deep learning
+• Re-implement, experiment with, improve existing
+methods
+– Study hyperparameters, identify disadvantages/failure
+cases, perform ablation studies
+
+• E.g. surface reconstruction from point clouds
+– Start with simple approach, e.g. “Implicit Geometric
+Regularization for Learning Shapes”
+https://arxiv.org/pdf/2002.10099.pdf
+
+https://github.com/amosgropp/IGR
+
+5
+
+4. Inverse rendering (NeRF etc.)
+
+• Build on existing code repos https://docs.nerf.studio/ or
+implement in code framework used for class
+• Experiment with, improve existing methods
+– Study hyperparameters, identify
+disadvantages/failure cases, perform ablation
+studies
+
+NeRF, https://arxiv.org/abs/2003.08934
+
+6
+
+5. Generative modeling
+• E.g., diffusion models
+– Images, video, geometry
+
+7
+
+6. Your own research project
+
+• Related to rendering, 3D geometry, image
+synthesis, or beyond (vision, optics)
+• Get instructor’s approval
+
+8
+
+Grading
+• Report (4-8 pages):
+–
+–
+–
+–
+
+Description of problem that was addressed
+If applicable: summary of own previous work on problem
+Brief summary of related literature
+Explanation of implemented algorithm/approach, including description
+of existing code that was used
+– Description of data gathered for the project (if applicable)
+– Presentation of experimental results, including (if applicable) numerical
+comparisons, visual comparisons, parameter studies (influence of
+different algorithm parameters), ablation studies (influence of different
+system components)
+– Conclusions
+
+• Criteria for grading: comprehensiveness, clarity, support of textual
+explanations with additional data (images, numerical data,
+explanatory figures), technical depth, initiative to develop own
+improvements/extensions of existing algorithms/approaches
+• Code, criteria for grading: clarity, correct functionality, technical
+difficulty, range ("amount") of functionality
+
+9
+
+

@@ -1,0 +1,527 @@
+CMSC740
+Advanced Computer Graphics
+Fall 2025
+Matthias Zwicker
+
+Today
+Simulating light transport
+• Introduction
+• Solid angle, integration over the sphere
+• Radiometry
+
+2
+
+Introduction
+• Realistic rendering = simulating light
+transport in a scene
+Light source
+Light rays
+„Virtual
+observer“
+
+3D scene
+
+3
+
+Approach
+• Find suitable physical model that
+describes important properties of light
+transport
+– Model of light (today)
+– Model of light transport (later)
+
+• Develop algorithms to simulate light
+transport
+– Based on ray tracing machinery, Monte Carlo
+integration
+4
+
+What is a suitable model for light transport
+simulation in computer graphics?
+
+A. Light particles
+(photons)
+B. Light rays
+C. Light waves
+(electromagnetic
+waves)
+
+5
+
+Physical model of light
+• Visible light is certain spectrum of
+electromagnetic radiation
+Frequency
+
+Wavelength
+1nm=10^-9 meters, one-billionth of a meter
+6
+
+Geometrical optics
+
+(http://en.wikipedia.org/wiki/Geometrical_optics)
+
+• Simple model, but explains most light transport effects
+visible to the naked eye
+• Main assumption: light consists of rays
+– Idealized narrow beams of light
+
+• Rays carry "spectrum of light", spectral power distribution
+(SPD)
+
+Energy
+Spectral power distribution (SPD)
+
+Frequency
+
+7
+
+Geometrical optics
+
+(http://en.wikipedia.org/wiki/Geometrical_optics)
+
+• „Rays reflect, refract, and scatter when
+they hit boundary (interface) between
+different materials (media)“
+• As long as ray travels in homogeneous
+material
+– Ray travels along straight lines
+– In vacuum, power (SPD) along ray is constant
+
+• Assumptions are valid when wavelength
+of light is small compared to objects it
+interacts with
+– Otherwise, wave effects appear (diffraction)
+8
+
+Color in computer graphics
+• Store only three samples (values) of
+spectral power distribution (SPD): red,
+green, blue (RGB)
+
+Spectral power
+distribution
+
+Energy
+B
+
+G
+
+R
+
+Frequency
+9
+
+Color in computer graphics
+• Why is RGB enough?
+– Trichromatic color vision
+http://en.wikipedia.org/wiki/Color_vision
+http://en.wikipedia.org/wiki/Trichromatic_color_vision
+
+nm
+
+Absorption curves of
+S,M,L photoreceptor cells
+10
+
+Color in computer graphics
+• Color spaces: quantifying color
+http://en.wikipedia.org/wiki/Color_space
+http://en.wikipedia.org/wiki/CIE_1931_color_space
+
+• Many color spaces derived from CIERGB color
+matching curves using three primary colors
+
+– Determined using tristimulus experiment
+– Gamut of 3 primaries doesn‘t cover all distinct colors
+
+CIERGB color matching curves
+
+Gamut of CIERGB primaries
+11
+
+Light transport effects
+Which ones can be represented with geometrical optics?
+
+Fluorescence
+
+http://en.wikipedia.org/wiki/Fluorescence
+
+Thin film interference
+http://en.wikipedia.org/wiki/Thin-film_optics
+http://en.wikipedia.org/wiki/Interference_(wave_propagation)
+
+Reflection
+
+Diffraction
+
+http://en.wikipedia.org/wiki/Diffraction
+
+12
+
+Light transport effects
+Which ones can be represented with geometrical optics?
+
+Refraction
+
+http://en.wikipedia.org/wiki/Refraction
+
+Rayleigh scattering
+
+http://en.wikipedia.org/wiki/Rayleigh_scattering
+
+Refraction, dispersion
+http://en.wikipedia.org/wiki/Dispersion_(optics)
+
+Polarization
+
+http://en.wikipedia.org/wiki/Polarization_(waves)
+
+13
+
+Light transport effects
+Which ones can be represented with geometrical optics?
+
+Scattering in volumes
+
+Subsurface scattering
+
+http://en.wikipedia.org/wiki/Subsurface_scattering
+
+14
+
+Today
+Simulating light transport
+• Introduction
+• Solid angle, integration over the sphere
+• Radiometry
+
+15
+
+Math challenge
+• Integrate functions over the sphere (or hemisphere)
+• Application: integrate (“sum up”) incident light
+over the hemisphere at a point on surface to
+calculate reflected light in some outgoing direction
+Hemisphere
+Outgoing
+direction
+
+Incident light
+
+16
+
+Solid angle
+• Area on the unit sphere that is spanned
+by a set of directions
+• Unit: steradian
+• Directions usually
+denoted by
+
+17
+
+Angles and solid angles
+Solid angle generalizes angles (in radians) from 2D to 3D
+
+• Angle
+• Segment length l,
+radius r
+• Unit circle has
+radians 2π
+
+• Solid angle
+• Area A, radius R
+• Unit sphere has 4π
+steradians
+18
+
+Integrating over the sphere
+• Given function of directions f(ω) defined
+over sphere
+• Want to integrate over sphere, i.e.,
+• Think of integral as a Riemann sum
+(http://en.wikipedia.org/wiki/Riemann_sum)
+
+– Partition (hemi)sphere into small parts
+– For each part, multiply f evaluated at some
+direction ω inside the part by the „differential“
+solid angle dω spanned by the part
+– Sum over all parts
+1D Riemann sum
+– (Riemann) integral is defined as limit of this sum
+as parts get infinitely small
+19
+
+Integrating over the sphere
+• Given function of directions f(ω) defined
+over sphere
+• Want to integrate over sphere, i.e.,
+• Think of integral as a Riemann sum
+(http://en.wikipedia.org/wiki/Riemann_sum)
+
+– Partition (hemi)sphere into small parts
+– For each part, multiply f evaluated at some
+direction ω inside the part by the „differential“
+(i.e., small) solid angle (area) dω spanned by the
+part
+– Sum over all parts
+– (Riemann) integral is defined as limit of this sum
+as parts get infinitely small
+20
+
+Integrating over the sphere
+• Analytic integration in the form
+not directly possible
+• Will most often implement numerical
+approximations
+– Monte Carlo integration, next time
+
+• For analytic integration, need
+parameterization of function over sphere
+using two variables
+– E.g., spherical coordinates
+21
+
+Spherical coordinates
+Elevation
+Azimuth
+Unit direction ω
+as vector in
+spherical coordinates
+
+22
+
+Conversion of differential solid angle
+Differential solid
+angle dω:
+“solid angle of
+infinitely small
+patch around ω“
+Conversion to
+spherical coords.:
+
+23
+
+Integrating over the sphere
+• Given function over directions f(ω)
+• Denote f(θ,φ) its reparameterization in
+spherical coordinates
+• Integration
+
+• Mathematically, sinθ is the determinant
+of the Jacobian Dρ(θ,φ) of the mapping
+ω=ρ(θ,φ)
+http://en.wikipedia.org/wiki/Integration_by_substitution
+
+24
+
+Example
+• Integral of function f(ω)=1 over the unit
+sphere?
+
+25
+
+Ingegral of f(ω)=1 over sphere?
+A. 1
+Β. π
+C. 4π
+
+26
+
+Example
+• Integral of function f(ω)=1 over the unit
+sphere?
+• Yields the surface area of the unit sphere
+
+27
+
+Today
+Simulating light transport
+• Introduction
+• Solid angle, integration over the sphere
+• Radiometry
+
+28
+
+Radiometry
+
+(http://en.wikipedia.org/wiki/Radiometry)
+
+• Quantify spatial energy distribution of light
+(in a way that is compatible with the
+geometrical optics model based on rays)
+• Physical measurement of electromagnetic
+energy
+• Units: Watts
+Side note: photometry
+http://en.wikipedia.org/wiki/Photometry_%28optics%29
+• Perceptual measurement of perceived
+brightness
+• Units: Lumen
+
+29
+
+Radiometry
+For intuition:
+• Assume light consists of photons with
+– Position x
+– Direction of motion ω
+– Wavelength λ
+
+• Each photon has an energy of hυ
+h Planck’s constant
+υ = 1/λ frequency
+• Measuring energy means “counting
+photons”
+30
+
+Radiometry
+How do we measure the energy flow?
+
+Small tube
+Energy density at some point in some direction:
+number of photons traveling through infinitesimally
+small tube placed at that point/direction
+31
+
+Radiometry
+How do we measure the energy flow?
+
+Solid angle
+
+Area
+Energy density at some point in some direction:
+photons per area per solid angle
+32
+
+Spectral radiance
+http://en.wikipedia.org/wiki/Radiance
+
+Definition: Spectral radiance is energy per
+time, per wavelength, per solid angle, per
+area
+
+where energy (“number of photons”) is
+Note:
+means differential area
+perpendicular to ω
+Power (SPD) carried along a ray is measured in radiance
+Radiance along ray is constant (in vacuum)
+
+33
+
+Spectral radiance
+http://en.wikipedia.org/wiki/Radiance
+
+• Measurement: spectroradiometer
+• Examples:
+
+https://en.wikipedia.org/wiki/Spectroradiometer
+
+34
+
+Radiance
+http://en.wikipedia.org/wiki/Radiance
+
+• In practice: assume steady state (no
+change over time), measure at discrete
+wavelengths R,G,B
+– R,G,B not explicit in our notation
+
+• Introduce power, or radiant flux Q
+• Our definition for radiance L: power per
+solid angle per area; vector of 3 values for
+R,G,B; function L of position x, direction ω
+
+35
+
+Irradiance
+http://en.wikipedia.org/wiki/Irradiance
+
+Definition: Power per unit area
+
+“Count photons going through area dA, irrespective of direction”
+
+36
+
+Irradiance
+http://en.wikipedia.org/wiki/Irradiance
+
+Definition: Power per unit area
+
+Radiant exitance
+
+from reflected radiance
+
+Irradiance
+
+from incident radiance
+
+37
+
+Irradiance
+http://en.wikipedia.org/wiki/Irradiance
+
+• Irradiance is integration (“sum”) of radiance
+L(x,ω) over hemisphere
+
+CAUTION: cosine term
+Irradiance E: power per area perpendicular to n
+Radiance L: power per area perpendicular to ω
+
+38
+
+Irradiance
+http://en.wikipedia.org/wiki/Irradiance
+
+• Integration (“sum”) of radiance over hemisphere
+
+Hemisphere
+
+Relation of area perpendicular to ray, to area perpendicular to surface normal
+
+39
+
+Irradiance
+http://en.wikipedia.org/wiki/Irradiance
+
+Integration in spherical coordinates
+• Before
+
+• Remember
+• In spherical coordinates
+
+40
+
+(Radiant) intensity
+http://en.wikipedia.org/wiki/Radiant_intensity
+
+Definition: Power (flux) per solid angle
+
+41
+
+(Radiant) intensity
+http://en.wikipedia.org/wiki/Radiant_intensity
+
+Isotropic point source
+• Intensity I constant
+in all directions
+• Total power Φ
+
+42
+
+Next time
+• How to describe reflection of light on
+surfaces: BRDFs, reflection equation
+
+43
+
+Amount of reflected light from a surface is always
+proportional to amount of incident light
+
+A. True
+B. False
+
+44
+
+

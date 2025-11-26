@@ -1,0 +1,423 @@
+CMSC740
+Advanced Computer Graphics
+Fall 2025
+Matthias Zwicker
+
+Path tracing
+
+10 paths/pixel
+
+[Wann Jensen]
+
+2
+
+Problems with path tracing
+
+10 paths/pixel
+
+[Wann Jensen]
+
+3
+
+Problems with path tracing
+
+100 paths/pixel
+
+[Wann Jensen]
+
+4
+
+Caustics
+• Focusing of light by reflective and
+refractive surfaces
+
+http://en.wikipedia.org/wiki/Caustic_(optics)
+
+5
+
+Realistic light sources
+• Light source encased in fixture, behind
+glass
+Emitted light
+Sampled path
+
+Image plane
+
+Light fixture with
+refractive cover
+
+6
+
+Light transport notation
+• Path tracing not suitable to render
+caustics
+• Light L, diffuse reflection D, specular
+reflection S, eye E
+• Caustics are paths L{S}+DE
+– {S}+ means one ore more specular bounces
+– Focusing of light through reflections and
+refractions on diffuse surfaces
+– Realistic light fixtures
+7
+
+Today
+• More sophisticated methods to sample
+light paths
+– Bidirectional path tracing
+– (Photon mapping)
+
+8
+
+Overview
+• Background
+– Three-point form of rendering equation
+– Measurement equation
+
+• Reformulation of path tracing
+• Bidirectional path tracing
+– Multiple importance sampling (MIS) weights
+
+See additional document on ELMS!
+9
+
+Hemispherical form
+
+point hit by ray (x, ωi)
+(formerly denoted x’)
+
+Integration over hemisphere H of incident directions ωi
+10
+
+Integration over surface area
+
+Change of integration variables:
+
+Visibility
+function
+
+Change of integration
+variables between
+directions on
+hemisphere dωi and
+points on surfaces dx
+
+Notation for
+geometry term
+
+Geometry term:
+
+(Slide 5, slide set 07 Advanced sampling)
+
+11
+
+Three point form
+
+Three-point form, integration over surface area
+
+12
+
+Measurement equation
+• Expresses pixel value Ij of pixel i
+
+Eye
+
+Importance function
+Wj for pixel j,
+here a box function
+(1 inside pixel, 0
+elsewhere)
+Hemispherical integral
+Surface area integral
+13
+
+Recursive expansion (3-point form)
+Initial guess
+
+, plug recursively into
+
+Plug result into
+
+Sum over
+path lengths k
+
+Path contribution function
+Path
+
+, almost same as
+14
+
+Path contribution function
+(based on 3-point form)
+
+Image plane
+
+Path parameterized
+using path vertices
+Light source
+
+Symmetry wrt. light source and pixel (imp. function)!
+15
+
+Monte Carlo integration
+• Estimate
+– Random paths
+– Path probabilities (conceptually): product of vertex
+probabilities p(xi) (area densities in three point
+form!) and probability of p(k) for length k
+
+• Path contribution using three-point form
+
+– Note: directly sampling points on surfaces with given
+density p(x) not a good strategy in practice
+– Instead, construct p(x) via ray tracing
+
+16
+
+Summary
+• Hemispherical form implies sampling of
+light paths incrementally by starting at
+camera
+• Three-point form enables more general
+techniques to sample light paths
+–
+–
+–
+–
+
+Ray tracing from camera
+Ray tracing from light sources
+Combinations of the above
+(Markov Chain Monte Carlo sampling by
+iteratively modifying paths)
+17
+
+Path tracing revisited: expressed using 3-point form
+• Sample paths incrementally from eye
+• At each step connect to light to obtain path
+of length k
+• Terminate path using Russian roulette, implemented with
+binary random variable Rk
+• Conceptually, each path tracing step evaluates sum over all
+lengths k=0…1
+
+One path tracing step
+
+18
+
+Relation of density on surface vs. hemisphere
+• Calculation of area density p(x), if (as in
+basic path tracing) we sampled x by sampling
+direction ωx’- >x from x’ with density p(ωx’- >x)
+
+Relation of densities:
+
+19
+
+Path tracing: same as before
+
+As in path tracing
+pseudo code
+
+20
+
+Summary
+• Formulation of path tracing using threepoint form is equivalent to previous
+approach (based on hemispherical
+integrals)
+– Many terms in division of
+geometry term over area
+density cancel out
+
+Advantage of three-point form
+More flexible, allows formulation of other
+path sampling strategies, beyond
+incremental path tracing from camera
+21
+
+Bidirectional path tracing
+• Trace paths both from eye and light (eye
+and light subpaths)
+– Terminate each using Russian roulette
+
+• Evaluate all connections and sum up
+Eye path
+
+Connections
+
+Light path
+
+22
+
+Bidirectional path tracing
+• Path of length k, with k+1 vertices
+
+– Sampled with s vertices from light, t from eye, s+t = k+1
+– Path denoted
+
+• Each length k can be sampled in k+2 ways, or with
+k+2 “sampling techniques”
+– s = 0,1,…k+1 and t = k+1-s
+– Probability density for “technique s,t” denoted ps,t
+
+23
+
+Example
+k: number path segments
+s: number of light vertices
+t: number of eye vertices
+
+s=1, t=2, k=2
+Images in each
+row should be
+identical,
+but here
+multiple
+importance
+sampling (MIS)
+weights are
+included in
+visualization
+
+s=2, t=1, k=2
+s+t = 4, k=3
+
+s+t = 5, k=4
+
+s+t = 6
+[Veach] 24
+
+Bidirectional path tracing
+• Conceptually, each bidirectional path tracing operation generates
+one sample for all techniques and for all path lengths
+• In practice, many are not evaluated because of Russian roulette,
+represented with binary variable Rs,t
+• Techniques combined with multiple importance sampling, weights wst
+One bidirectional path tracing step
+
+Path Sampling
+lengths techn.
+
+25
+
+Path contribution
+Light subpath
+Connection
+Eye subpath
+
+26
+
+Incremental computation
+
+27
+
+Multiple importance sampling
+• For each path, need to evaluate, for each
+technique, probability that path would
+have been sampled with that technique
+• Example:
+
+p2,3
+
+p3,2
+Probability to sample same path
+with technique p3,2 (instead of p2,3)
+
+28
+
+MIS weights
+• Balance heuristics
+
+Probabilities to
+sample path with
+all other techniques
+
+• Example with s=2, t=2
+
+29
+
+MIS weights, implementation
+• Idea: given a path sampled with
+technique s,t, incrementally compute
+probabilities for s-i,t+i step by step for
+i=0,1,2,…
+– Compute ps-1,t+1 using ps,t; then ps-2,t+2 using
+ps-1,t+1, etc.
+
+• A bit hairy to implement in practice
+
+30
+
+Notation
+• Probability pL(yi) to sample vertex yi on
+light path from light
+• Probability pE(yi) to sample from eye
+• Similar: pE(zi) and pL(zi)
+
+31
+
+Notation
+• Computation of probabilities (using relation of densities
+on surface vs. hemisphere)
+
+32
+
+MIS weights
+• Note
+
+„Change i vertices
+from light to eye“
+„Change i vertices
+from eye to light“
+
+Change 1 vertex
+from light to eye
+
+Change 2 vertices
+from light to eye
+
+33
+
+MIS weights
+• Need to compute
+
+„Change 1 to s vertices
+from light to eye“
+
+„Change 1 to t vertices
+from eye to light“
+
+34
+
+Example
+• Same render time
+
+Bidirectional with multiple
+importance sampling
+
+[Veach]
+
+Standard path tracing
+35
+
+Implementation details
+• Short paths (s,t<=2) need special attention
+– See definition of αΕ, αL values and connection
+terms cs,t in additional document on ELMS
+
+• For t=1, paths do not necessarily go through
+sampled pixel!
+– Accumulate in separate image buffer, see
+document
+Eye path
+
+Connections
+
+Light path
+36
+
+Next time
+• Participating media
+
+37
+
+

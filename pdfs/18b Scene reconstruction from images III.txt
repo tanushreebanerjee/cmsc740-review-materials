@@ -1,0 +1,380 @@
+CMSC740
+Advanced Computer Graphics
+Matthias Zwicker
+Fall 2025
+
+Limitations of NeRF
+• Doesn’t attempt to represent surface directly (only density σ)
+– SDF surface: NeuS, https://lingjie0206.github.io/papers/NeuS/
+
+• Treats pixels as infinitesimal rays, doesn’t take into account
+pixel areas
+– Extended spatial encoding to capture beam volume: MipNeRF,
+https://jonbarron.info/mipnerf/
+
+• Only works for static scenes
+– Include temporal space deformation: Nerfies, https://nerfies.github.io/
+
+• Doesn’t take into account potential appearance variation in
+input images (different illumination, time, time of year, etc.)
+– Latent appearance vectors: NeRF in the wild, https://nerf-w.github.io/
+
+• Doesn’t recover BRDF parameters and illumination
+
+– Approximate model to better capture glossy reflection: RefNeRF,
+https://dorverbin.github.io/refnerf/
+
+• Requires known camera parameters
+• Training and rendering slow
+• Requires many input images
+2
+
+Slow training and rendering
+• Training/evaluating neural network for
+radiance and density is slow
+– Hundreds of network evaluations per ray,
+millions of rays per image
+
+• Alternative representations for radiance,
+density that are faster to evaluate?
+1. Grid-based with interpolation function (e.g.
+linear)
+2. Radial (or elliptical) basis functions
+
+3
+
+Grid-based representation
+• Parameters (to be optimized): radiance, density values at
+grid points ci, σi
+• Evaluation at arbitrary point x :
+c(x) = linear interpolation of {ci | i in neighborhood of x}
+
+c i, σ i
+x
+
+Linear
+interpolation at x
+using four
+neighboring grid
+points
+
+4
+
+Challenges
+• Dense grid requires a lot of memory
+• How to pick appropriate grid resolution
+• How to represent directional dependence
+of radiance c(x, d), d ray direction
+
+5
+
+Sparse grids using spatial hasing
+• Allocate storage for grid vertices only where needed
+(non-zero values)
+• Spatial hashing: indirect lookup of grid value through hash
+table
+Hash function
+Values not
+allocated in
+hash array
+
+Values
+allocated in
+hash array
+
+based on
+spatial
+position (x,y,z)
+as hash key
+
+Index into hash
+table (much fewer
+values than in
+dense grid)
+
+c i, σ i
+Spatial hasing popular for many applications in computer graphics
+
+6
+
+Directional dependence: spherical harmonics
+• Spherical harmonics: generalization of Fourier
+basis functions (sines, cosines of increasing
+frequencies) to sphere of directions
+– “Frequency” l, “phase” m, spherical angles θ, φ
+l=0
+
+Blue: positive
+Yellow: negative
+Distance of surface from
+origin: absolute value
+
+l=3
+m=3
+
+m=0
+
+m=-3
+7
+
+Directional dependence: spherical harmonics
+• Represent functions f (e.g. radiance) over the
+sphere using weighted sum of spherical harmonics
+– Weights (coefficients) fml are parameters of
+representation
+– Using more coefficients (more spherical harmonics)
+enable higher frequencies
+
+• To represent functions with directional
+dependence, e.g. radiance c(x,y,z,θ,φ), store and
+optimize vector of coefficients fml per grid point
+– Typically k<=3 (<=16 coefficients)
+8
+
+Plenoxels: Radiance Fields without Neural Networks
+
+• CVPR 2022,
+
+https://alexyu.net/plenoxels/
+
+9
+
+Hybrid: grid/neural network
+• Store learnable feature vectors on grid
+(instead of radiance or density)
+• Use small neural network that takes
+feature vectors as input to produce
+desired output quantity (radiance, density,
+etc.)
+• Potential advantages
+– Fast training due to smaller network
+– More accuracy due to feature vectors stored
+on spatial grid
+10
+
+Hybrid: grid/neural network
+• Instant Neural Graphics Primitives (NGP)
+https://nvlabs.github.io/instant-ngp/
+
+Multi-resolution grid
+storing learnable
+feature vectors using
+hashing (blue:
+coarse grid; pink:
+finer grid)C
+
+Sparse grid storage using
+spatial hasing,
+linear interpolation and
+concatenation of feature
+vectors
+
+Small neural network
+to predict desired
+quantity (radiance,
+density)
+
+11
+
+Hybrid: grid/neural network
+• Instant Neural Graphics Primitives (NGP)
+https://nvlabs.github.io/instant-ngp/
+
+Auxilary
+inputs
+(direction)
+
+Multi-resolution grid
+storing learnable
+feature vectors using
+hashing (blue:
+coarse grid; pink:
+finer grid)C
+
+Sparse grid storage using
+spatial hashing,
+linear interpolation;
+concatenation of feature
+vectors over multiple
+resolutions
+
+Small neural network
+to predict desired
+quantity (radiance,
+density)
+
+12
+
+Hybrid: grid/neural network
+• Instant Neural Graphics Primitives (NGP)
+https://nvlabs.github.io/instant-ngp/
+
+Auxilary
+inputs
+(direction)
+
+Multi-resolution grid
+storing learnable
+feature vectors using
+hashing (blue:
+coarse grid; pink:
+finer grid)C
+
+Sparse grid storage using
+spatial hashing,
+linear interpolation;
+concatenation of feature
+vectors over multiple
+resolutions
+
+Small neural network
+to predict desired
+quantity (radiance,
+density)
+
+13
+
+Instant NGP
+• Well-optimized implementation
+
+https://nvlabs.github.io/instant-ngp/
+
+• Much faster than original NeRF
+• No collision handling for spatial hashing, still works,
+see paper
+• Hybrid sparse multiresolution hash grid/neural network
+better than spatial encoding (higher quality, faster)
+
+Image reconstruction quality, PSNR
+Bottom two rows: their approach, but spatial encoding instead of hash grid
+14
+
+Slow training and rendering
+• Training/evaluating neural network for
+radiance and density is slow
+• Alternative representations for radiance,
+density that are faster to evaluate?
+1. Grid-based with interpolation function (e.g.
+linear)
+2. Radial (or elliptical) basis functions
+
+15
+
+Radial basis functions
+• Function represented as weighted sum of simple (radially symmetric) basis
+functions centered at irregular locations xi https://en.wikipedia.org/wiki/Radial_basis_function
+• Here: N Gaussian basis functions G, covariance Σi, centered at locations xi,
+to represent radiance c(x)
+• Parameters (to be optimized): coefficients ci, covariances Σi, centers xi
+
+x
+
+ci
+
+Σi
+
+xi
+
+16
+
+Volumetric rendering of Gaussians
+• Same volume rendering model as before (NeRF)
+• Color and density values
+c(r(t)), σ(r(t))
+
+t
+ci
+
+Σi
+
+xi
+Samples
+
+17
+
+Volumetric rendering of Gaussians: ray marching
+
+• Discretization: can do ray marching as before
+Gaussians instead of
+neural network, similar
+for density σi
+
+Same as original NeRF
+
+t
+
+c i, σ i
+
+ci
+δi
+
+xi
+
+Transmittance Ti
+
+Σi
+
+For efficient
+evaluation,
+need spatial data
+structure to avoid
+summing over all N
+Gaussians at each
+sample point
+
+Sample points ti
+along ray
+18
+
+Volumetric rendering of Gaussians: ray marching
+• Efficient ray marching requires spatial data
+structure (bounding volume hierarchy, BVH), proxy
+geometries for Gaussians
+
+https://gaussiantracer.github.io/
+
+• Potential proxy geometries for Gaussians
+
+19
+
+Volumetric rendering of Gaussians
+• Implementation of ray tracing approach: 3D
+Gaussian Ray Tracing: Fast Tracing of Particle
+Scenes
+• Advantage: light transport effects that
+require ray tracing (shadows, reflections,
+etc.)
+https://gaussiantracer.github.io/
+
+Using ray tracing to include mirror reflection, reflection/refraction,
+depth-of-field blur, adding objects
+
+20
+
+Volumetric rendering of Gaussians: splatting
+• 3D Gaussian splatting https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/
+• Alternative rendering algorithm: instead of ray tracing/marching, use
+rasterization [Zwicker 2001]
+• Loop over Gaussian in front to back order
+–
+–
+–
+
+Project 3D Gaussians one-by-one to 2D
+Calculate integral along viewing rays per Gaussian, can be done analytically
+Alpha-blend projected, integrated Gaussians based on densities
+
+• Requires only single loop over all Gaussians per image (as opposed to per
+sample point loop over all Gaussians in naïve ray marching approach)
+• Main benefit: fast rendering (“Ours”: 3D Gaussian splatting)
+
+Image quality
+
+Rendering
+speed
+
+Training
+time
+21
+
+

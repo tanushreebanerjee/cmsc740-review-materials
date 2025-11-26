@@ -1,0 +1,644 @@
+CMSC740
+Advanced Computer Graphics
+Fall 2025
+Matthias Zwicker
+
+Today
+Simulating light transport
+• BRDF & reflection integral
+• BRDF examples
+
+2
+
+Surface appearance
+• How is light reflected by a
+–
+–
+–
+–
+
+Mirror
+White sheet of paper
+Blue sheet of paper
+Glossy metal
+
+3
+
+The BRDF
+
+(bidirectional reflectance distribution function)
+
+http://en.wikipedia.org/wiki/Bidirectional_reflectance_distribution_function
+
+• Describes quantitatively how light is reflected off a surface
+• “For every pair of light and viewing directions, BRDF gives
+fraction of transmitted light”
+• Captures appearance of surface
+
+Diffuse reflection
+
+Glossy reflection
+
+4
+
+The BRDF
+
+(bidirectional reflectance distribution function)
+
+http://en.wikipedia.org/wiki/Bidirectional_reflectance_distribution_function
+
+Relation of BRDF to physics
+• BRDF is quantitative description of overall result
+of light scattering for a given type of material
+• BRDF can be measured, or derived from (often
+simplified) physical assumptions
+
+5
+
+Types of reflection
+• Diffuse
+– Matte paint
+
+• Glossy
+– Plastic, high-gloss paint
+
+• Perfect specular
+– Mirror
+
+• Retro-reflective
+– Surface of the moon
+http://en.wikipedia.org/wiki/Retroreflector
+
+• Natural surfaces are often combinations
+6
+
+Mathematical formulation
+• Preliminaries: differential irradiance dE on surface
+due to incident radiance Li within a small cone of
+around direction ωi
+
+: angle between
+normal and ωi
+
+7
+
+Mathematical formulation
+• BRDF: given surface location x with normal n, BRDF is
+fraction of reflected radiance Lo in outgoing direction ωo
+over differential irradiance dE from direction ωi
+
+8
+
+Reflection equation
+• Outgoing radiance Lo due to incident
+illumination Li from all directions ωi over
+hemisphere H2(n)
+
+Hemisphere H2(n)
+
+9
+
+Scattering equation
+• Generalization of reflection equation to
+n
+ω
+i
+materials that include refraction
+– Light changing direction as it enters
+material
+
+ωo
+
+• Integral over whole sphere of directions
+• BRDF is now also called bidirectional
+scattering distribution function (BSDF)
+
+10
+
+What can we model with BRDFs?
+• Semi-transparent objects like glass?
+• Properties such as diffuse, glossy, specular
+reflection and combinations thereof?
+• Surface color?
+• Spatially varying surface color?
+• Dispersion (e.g., rainbows)?
+• Subsurface and volume scattering?
+• Polarization?
+• Diffraction?
+11
+
+Spatially varying surface color?
+A. Yes
+B. No
+
+12
+
+Semi-transparent objects like glass?
+A. Yes
+B. No
+
+13
+
+Scattering in 3D volumes (clouds, orange
+juice, etc.)?
+A. Yes
+B. No
+
+14
+
+Dispersion (e.g., rainbows)?
+A. Yes
+B. No
+
+15
+
+Properties of the BRDF
+• BRDFs are wavelength dependent
+– Not explicit in our notation (similar as radiance)
+– In practice, separate for RGB channels
+
+• BRDFs are four-dimensional functions
+– 2 degrees of freedom for both incident and
+outgoing directions
+
+• Spatially varying BRDFs
+– BRDF is different at each surface
+point
+– Common in natural surfaces
+
+16
+
+Properties of BRDFs
+• Energy conservation: total energy of
+reflected light is less than or equal to
+energy of incident light
+
+• But BRDF values for some ωo, ωi can be
+larger than one!
+– BRDF can involve Dirac delta function
+https://en.wikipedia.org/wiki/Dirac_delta_function
+
+17
+
+Properties of BRDFs
+• Linear
+
+[Sillion, Arvo, Westin, Greenberg]
+
+• BRDF usually sum of different components
+
+diffuse
+
+specular
+
+18
+
+Properties of BRDFs
+• Helmoltz reciprocity
+http://en.wikipedia.org/wiki/Helmholtz_reciprocity
+
+[Hanrahan]
+
+• Can exchange role of light source and observer
+19
+
+Today
+Simulating light transport
+• BRDF & reflection integral
+• BRDF examples
+
+20
+
+BRDF representation
+1. As a table of values over incident and
+outgoing directions
+– General, based on measurements
+– Lots of data (4D table for each surface location)
+
+2. Analytic BRDF models
+– Represent BRDFs as analytic functions
+– Specific functions to model physical behavior of
+different materials
+– Compact, material properties given by just a
+few parameters
+21
+
+Gonioreflectometer
+• Device to measure and tabulate BRDFs
+– Robot with light source and camera
+– Measures reflection for
+each light/camera
+direction
+Light source
+– Store measurements
+in table
+
+• Public databases,
+e.g. http://www.merl.com/brdf/
+
+Camera
+
+Material sample
+Cornell University
+Gonioreflectometer
+
+22
+
+Analytic BRDFs
+• Three examples next
+
+– Diffuse
+– Perfect specular reflection (mirror) and
+refraction
+– Torrance-Sparrow
+– Many details in PBRT book, Sections 8-8.4
+http://www.pbr-book.org/3ed-2018/Reflection_Models.html
+
+• More examples on
+http://en.wikipedia.org/wiki/Brdf
+
+• Phong
+
+http://en.wikipedia.org/wiki/Phong_reflection_model
+
+– Not physically plausible, may violate energy
+conservation property
+23
+
+Diffuse reflection
+http://en.wikipedia.org/wiki/Diffuse_reflection
+
+• Ideal diffuse reflection: reflected
+radiance is equal over all directions
+• Physical model: Lambert‘s cosine law
+http://en.wikipedia.org/wiki/Lambert's_cosine_law
+
+n
+
+n
+
+n
+
+Differential irradiance:
+Proportional to cosine of angle
+between incident light and normal
+
+Reflected radiance
+equal in all
+outgoing directions
+24
+
+Diffuse reflection
+• Diffuse BRDF is a constant
+Reflection equation
+for diffuse surface
+
+• Usually defined in terms of diffuse
+reflectance , i.e., fraction of reflected
+over incoming light over whole hemisphere
+–
+–
+– Factor 1/π because of energy conservation
+–
+: all light reflected, none absorbed
+25
+
+Specular reflection & refraction
+http://en.wikipedia.org/wiki/Specular_reflection
+
+• Perfectly flat, homogeneous materials
+
+– Mirror like reflection, BSDF includes Dirac delta
+function
+
+• Distinguish between dielectrics and conductors
+• Dielectrics (insulators)
+
+– Glass, plastic
+– Refraction: light enters material and is transmitted
+in it
+
+• Conductors
+
+– Metals
+– No light is transmitted in material
+
+• Snell‘s law determines angle of refraction
+• Fresnel equations determine amount of reflected
+and refracted light
+26
+
+Specular refraction
+• Light travels at different
+speeds in different media
+• Light is bent when it
+goes from one medium
+to another
+• Dielectric materials
+– Diamond, glass, water,
+air
+
+27
+
+Index of refraction
+• Speed of light depends on medium
+– Speed of light in vacuum
+– Speed of light in medium
+
+• Index of refraction
+– Air 1.00029
+– Water 1.33
+– Acrylic glass 1.49
+
+28
+
+Explanations for bending of light rays
+• Fermat’s principle
+“The actual path between
+two points taken by a beam
+of light is the one which is
+traversed in the least time.“
+http://en.wikipedia.org/wiki/Specular_reflection
+
+• “Change in phase velocity
+leads to bending of light rays”
+http://en.wikipedia.org/wiki/Snell%27s_law
+
+air
+water
+29
+
+Which path will light take if index of
+refraction nt is larger than n?
+A. Path A (black
+dotted)
+B. Path B (red)
+
+Path B
+
+Path A
+
+30
+
+Snell’s law
+http://en.wikipedia.org/wiki/Snell%27s_law
+
+• Ratio of sines of angles of incidence
+and refraction is equal to opposite
+ratio of indices of refraction n1, n2
+
+n
+
+ωi
+
+• Vector form to obtain refracted
+(transmitted) 3D direction t
+
+– Incident, refracted 3D direction ωi, t
+– Normal vector n
+
+t
+
+31
+
+Total internal reflection
+• Snell’s law has no solutions for angles θ1 larger
+than critical angle
+• Means all light is reflected, none refracted
+
+https://en.wikipedia.org/wiki/Total_internal_reflection
+
+Only reflection,
+no refraction
+
+32
+
+Fresnel equations
+http://en.wikipedia.org/wiki/Fresnel_equations
+
+• Fresnel equations describe fraction of
+intensity of light that is reflected and
+refracted
+• Derived by solving Maxwell equations
+– Takes into account polarization of light
+
+• Different versions for dielectrics and
+conductors
+• See pbrt book for exact equations
+
+http://www.pbr-book.org/3ed-2018/Reflection_Models/Specular_Reflection_and_Transmission.html#FresnelReflectance
+
+33
+
+BRDF for refraction (specular transmission)
+• BRDF only non-zero if ωo is refracted
+direction given ωi
+• Dirac delta function δ
+https://en.wikipedia.org/wiki/Dirac_delta_function
+
+Refracted
+direction
+
+Fresnel
+term
+
+Cancels with
+cosine term in
+scattering
+equation
+
+See PBRT book for detailed derivation
+
+https://www.pbr-book.org/3ed-2018/Reflection_Models/Specular_Reflection_and_Transmission
+
+34
+
+BRDF for specular reflection
+• Reflection only if incident direction ωi is mirror
+reflection r = -ωo + 2(dot(n,ωo))n of outgoing
+direction
+n
+• Specular BRDF
+
+• Reflected light (result of plugging specular BRDF
+into reflection equation, cosθi cancels out)
+• Fraction of reflected light
+equations
+
+given by Fresnel
+35
+
+Glass sphere
+• Fresnel term omitted
+
+36
+
+Glass sphere
+• With Fresnel term
+
+37
+
+Micro facet models for glossy reflection
+• Model assumption: surface consists of randomly
+oriented small mirrors (micro facets)
+• Statistical distribution of micro facet
+orientations determines appearance,
+glossiness/shininess of reflection
+
+38
+
+Torrance-Sparrow model
+• Physically-based model for specular
+highlight due to micro facet distribution
+http://en.wikipedia.org/wiki/Specular_highlight
+
+– Surfaces modeled as collections of randomly
+oriented small mirrors (micro mirrors, micro
+facets)
+Surface
+normal
+Macroscopic surface
+
+Micro facet,
+random orientation
+given by some
+probability density
+
+39
+
+Torrance-Sparrow model
+• Distribution of micro facet orientations D(ωh)
+
+– Half-vector ωh between ωi, ωo
+– D usually function of dot product of ωh and n
+– Note: denoting spherical coordinates of ωh as θ, φ, then
+D(ωh) = D(θ, φ)/ sin(θ), for any density D
+
+• Distribution of microfacet normals determines
+surface roughness
+– Sharp or smooth specular highlight
+
+ωh = (ωi +ωo) / |ωi +ωo|
+Half-vector
+
+ωi
+D(ωh)
+
+θi
+
+n ωh
+
+θo
+
+ωo
+40
+
+Masking and shadowing
+• Rough surface consisting of microfacets leads to
+blocking of reflected light (masking) and
+shadowing of incident light
+• Masking and shadowing depends on
+incident/outgoing angles
+Microfacets
+
+Masking
+
+Shadowing
+
+Shadowing
+on a rough
+surface
+
+41
+
+Torrance-Sparrow model
+• Geometry term G (masking and shadowing)
+• Derived from simplifying assumptions about micro
+facet geometry
+
+• Blinn microfacet distribution D
+• Smoothness parameter e: The higher e the more
+specular (mirror-like)
+• Other distributions D can be used
+
+42
+
+Torrance-Sparrow model
+
+• Fresnell term Fr
+
+• Because each micro facet is modeled as a small mirror
+
+• Normalization factors 4 cos θo cos θi
+• Derivation of complete model in PBRT book
+http://www.pbr-book.org/3ed-2018/Reflection_Models/Microfacet_Models.html
+
+43
+
+Torrance-Sparrow model
+• Looks qualitatively similar to simpler
+models such as Phong-Blinn
+https://en.wikipedia.org/wiki/Blinn%E2%80%93Phong_shading_model
+
+44
+
+Layered surfaces
+• Combine microfacet model (e.g. Torrance-Sparrow)
+with diffuse component to model layered surfaces
+– Glossy layer on top of diffuse
+
++
+Specular
+Diffuse
+• Physically plausible model (reciprocity, energy
+conservation) requires adjustment of diffuse term
+– See work by Ashikmin and Shirley
+http://www.cs.utah.edu/~shirley/papers/jgtbrdf.pdf
+
+• Comprehensive framework for layered
+materials
+https://rgl.epfl.ch/publications/Jakob2014Comprehensive
+
+45
+
+Layered materials
+
+[Ashikmin & Shirley]
+
+[Jakob et al. 2014,
+
+https://rgl.epfl.ch/publications/Jakob2014Comprehensive
+
+]
+
+46
+
+Relevant sections in PBRT book
+• 8 Reflection Models
+–
+–
+–
+–
+
+8.1 Basic Interface
+8.2 Specular Reflection and Transmission
+8.3 Lambertian Reflection
+8.4 Microfacet Models
+
+47
+
+Next time
+• Modeling light transport using the
+rendering equation
+
+48
+
+Evaluating the reflection equation for a diffuse surface requires more
+computation then for a mirror surface
+
+A. True
+B. False
+
+49
+
+

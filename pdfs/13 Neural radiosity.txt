@@ -1,0 +1,324 @@
+CMSC740
+Advanced Computer Graphics
+
+Fall 2025
+Matthias Zwicker
+
+Deep learning in graphics
+• So far
+
+– Denoising (map noisy image to clean image)
+
+Neural representations in graphics/vision
+• General idea: represent continuous
+quantities/functions in computer graphics with neural
+networks
+• Examples
+– Geometry (network implements implicit surface
+representation using signed distance fields, or binary
+occupancy/inside-outside function)
+– Radiance fields (given ray, network returns radiance)
+– Images, videos (given pixel coordinates, network returns
+color)
+– Etc.
+
+2
+
+General approach
+• Naïve: MLP as function representation for various
+objects
+(x,y)
+(x,y,z)
+(x,y,z,θ,φ)
+Etc.
+
+Neural network
+(simplest case:
+multilayer
+perceptron, MLP)
+
+RGB (+ time)
+3D occupancy or signed distance value (3D shape)
+Radiance
+Etc.
+
+• Approach: train MLP for each “object” individually,
+using reconstruction loss (e.g., L2-loss distance
+between output and ground truth)
+• “Objects”:
+–
+–
+–
+–
+
+Radiance fields
+3D geometry
+Images
+Videos
+
+3
+
+Example: Image represented as NN
+(996 megapixel)
+168M parameters
+
+https://arxiv.org/pdf/2105.02788.pdf
+(x,y) -> Neural Network -> RGB, trained for each image separately
+
+168M parameters
+
+ACORN: Adaptive Coordinate Networks for
+Neural Scene Representation
+
+4
+
+Approach
+• Naïve
+(x,y)
+(x,y,z)
+(x,y,z,θ,φ)
+Etc.
+
+Neural network
+(simplest case:
+multilayer
+perceptron, MLP)
+
+RGB (+ time)
+3D occupancy or signed distance value (3D shape)
+Radiance
+Etc.
+
+• Better: replace MLP with more sophisticated
+architectures (e.g., ACORN: Adaptive Coordinate
+Networks)
+
+https://arxiv.org/pdf/2105.02788.pdf
+
+5
+
+Advantages, disadvantages
+• Conventional techniques: Splines, wavelets, etc.
+• Advantages of neural networks
+
+– Represent complicated functions efficiently, with low storage
+cost (adaptive, nonlinear); most useful if desired function is
+given as solution of some equation (PDE, integral equation,
+etc.)
+– Leverage deep learning infrastructure (GPUs, automatic
+differentiation, numerical optimization techniques for neural
+networks, Python libraries)
+
+• Disadvantages of neural networks
+
+– Requires nonlinear optimization (instead of linear as for some
+other techniques)
+– Slower to evaluate than conventional techniques
+– Relation of network architectures to accuracy, convergence
+properties not understood as well as for conventional
+techniques
+6
+
+Application in graphics: neural representation
+to solve rendering equation
+
+• First: background on traditional radiosity
+technique to solve rendering equation
+https://en.wikipedia.org/wiki/Radiosity_(computer_graphics)
+
+– Radiosity solves simplified rendering equation
+only for diffuse surfaces
+– Instead of radiance, use radiosity that
+doesn’t depend on direction at each surface
+point (due to diffuse-only reflection)
+
+• Then: using neural networks
+– Works for general BRDFs
+7
+
+Radiosity
+
+(1984)
+
+(https://en.wikipedia.org/wiki/Radiosity_(computer_graphics))
+
+• Rendering equation restricted to diffuse surfaces (radiosity B
+instead of radiance L, no directional dependence; diffuse
+BRDF ρ, scene surfaces Μ)
+3-point form,
+area integration
+
+• Key idea: discretization of desired, continuous radiosity B(x)
+using piecewise constant functions Bi over mesh elements i
+Sum over all mesh faces approximates
+integral over scene surfaces M
+
+Constant radiosity
+over mesh face i
+
+Constant emission
+over mesh face i
+
+– Form factors Fi,j between
+mesh faces i, j
+
+Ei
+Bi
+
+Fi,j
+Bj
+
+Geometry Mesh
+term
+faces
+
+8
+
+Radiosity solution
+• Need to solve linear system for unknowns Bi
+
+• Goal: minimize difference between left- and
+right-hand side to find “equilibrium”
+
+argmin Σi
+B
+
+(
+
+)2
+
+• Solution (n x n matrix F, column vectors B, E)
+9
+
+Challenges
+• High mesh resolution (i.e., small piecewise
+constant elements) required for high
+accuracy
+– Very large linear systems to solve
+
+• Extending to arbitrary BRDFs, radiance fields
+requires 4D discretization
+– Instead of 2D mesh elements for diffuse surfaces
+
+• Resurrect concept of radiosity using neural
+networks?
+– Use neural networks to represent radiance,
+instead of conventional approach such as
+piecewise constant functions over mesh
+
+10
+
+Neural radiosity
+Neural network with parameters θ
+to represent radiance field Lθ
+
+https://arxiv.org/abs/2105.12319
+
+11
+
+Training/optimization
+
+||
+
+||
+Left Hand Side (LHS)
+
+Right Hand Side (RHS)
+
+Training loss L for network parameters θ
+as norm of residual of rendering equation
+12
+
+Estimating norm of residual
+• Residual: difference between LHS, RHS
+
+=
+• Monte Carlo sampling surface locations xj,
+directions ωo,j
+
+=
+• Minimizing loss: stochastic gradient descent
+using batches of Monte Carlo samples
+13
+
+Network architecture
+• Instead of naïve MLP, use sparse multiresolution feature grid, details in paper
+https://arxiv.org/abs/2105.12319
+
+14
+
+Training/optimization
+Network needs to be trained for each scene!
+
+As training progresses, left- and right-hand side become more similar, residual
+vanishes, radiance field converges to solution of rendering equation
+
+15
+
+Dynamic scenes
+In dynamic scenes (animations), can “re-use” and adapt network trained for
+initial scene to save training time
+
+Same
+network
+
+LHS – Initial scene
+Rest Pose
+
+LHS - Stretch Pose
+
+LHS - Speak Pose
+
+Without fine-tuning (retraining), image looks roughly
+ok but network doesn’t represent correct solution
+after scene geometry changes
+16
+
+Dynamic scenes
+
+After
+fine
+tuning
+
+LHS – Initial scene
+Rest Pose
+
+LHS - Stretch Pose
+
+LHS - Speak Pose
+
+Accurate radiance field after network was updated to
+represent new scene
+17
+
+Fine tuning
+
+Fine-tuning (red line)
+converges faster than
+original training (blue
+line)
+
+Related work: Real-time Neural Radiance Caching
+for Path Tracing
+https://arxiv.org/abs/2106.12372
+https://research.nvidia.com/publication/2021-06_real-time-neural-radiance-caching-path-tracing
+
+18
+
+Neural Radiosity Conclusions
+• Neural networks can accurately represent
+complex radiance fields
+– Can use as representation for unknown functions
+of numerical optimization problems, such as
+rendering equation
+
+• Neural radiosity requires per scene training,
+which can be slow
+– Training time can be amortized over multiple
+frames in dynamic scenes
+
+• Real-time performance possible (real-time
+neural radiance caching)
+19
+
+

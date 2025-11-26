@@ -1,0 +1,707 @@
+CMSC740
+Advanced Computer Graphics
+Fall 2025
+Matthias Zwicker
+
+Math challenge
+• Integrate functions over the sphere (or hemisphere)
+• Application: integrate (“sum up”) incident light
+over the hemisphere at a point on surface to
+calculate reflected light in some outgoing direction
+Hemisphere
+Outgoing
+direction
+
+Incident light
+
+2
+
+Challenge
+• Complicated integral, terms not known analytically:
+incident light depends on complex scene geometry
+
+[Laine, Aila, Assarsson, Lehtinen, Akenine-Moeller]
+3
+
+Monte Carlo integration
+http://en.wikipedia.org/wiki/Monte_Carlo_integration
+
+• General technique for numerical
+integration
+• Advantages
+– Easy to implement
+– Robust, can integrate almost any function
+– Efficient for high dimensional integrals
+
+• Disadvantages
+– Variance (noise)
+– Slow convergence
+4
+
+Relevant chapters in PBRT book
+•
+•
+•
+•
+
+See
+Section 13.1, probability background
+Section 13.2, Monte Carlo integration
+Section 13.3, sampling random variables (1D
+inversion sampling)
+• Section 13.5, transforming between
+distributions (1D)
+• Section 13.6, 2D sampling with
+multidimensional transformations
+http://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration.html
+
+5
+
+Probability concepts
+• Random variable X
+– Every time you sample (“query”) a random
+variable, it returns a random number
+
+• Cumulative distribution function (CDF) P
+– Fraction of times the value of a sample of the
+random variable X is below a value x
+– For all CDFs: 0 <= P(x) <= 1
+
+~
+
+Number of times sample value X<=x
+Number of samples that were taken
+
+6
+
+Probability recap
+• Probability density function (PDF) p is
+derivative of cumulative distribution (CDF) P
+• “Given many samples of random variable X,
+the PDF p(x) is the fraction of these samples
+that lie in a small area around location x,
+divided by the size of the area (in the limit)”
+• Therefore
+
+7
+
+Probability recap
+• Uniform random variables
+
+Why not 1?
+
+• Canonical uniform random variable
+
+8
+
+Probability recap
+• Random variable
+• Expected value
+
+, f any function
+
+– Linearity: A, B random variables, α scalar
+
+• Variance
+
+9
+
+Monte Carlo integration
+http://en.wikipedia.org/wiki/Monte_Carlo_integration
+
+• Want to compute numerically
+• Given uniform random variables
+
+• Monte Carlo estimator with N samples
+
+10
+
+Instead of evaluating the integrand at random positions,
+it would be better to use equally space positions
+
+A. True
+B. False
+
+11
+
+If we use a non-uniform random variable the MC
+estimator will not work.
+
+A. True
+B. False
+
+12
+
+Monte Carlo integration
+http://en.wikipedia.org/wiki/Monte_Carlo_integration
+
+13
+
+Monte Carlo integration
+http://en.wikipedia.org/wiki/Monte_Carlo_integration
+
+Variance of the estimator
+
+14
+
+Monte Carlo integration
+http://en.wikipedia.org/wiki/Monte_Carlo_integration
+
+Standard deviation (expected error) σ of
+the estimator
+
+• The expected error converges with
+• To get half the error, we need four times
+the number of samples
+• Slow convergence …
+15
+
+Importance sampling
+• Samples with general probability density p
+
+known as “importance sampling”
+• Show
+as before
+
+16
+
+Importance sampling
+• Standard deviation σ, variance V
+
+• Convergence still O(N-1/2)
+• Observe: σ proportional to f(X)/p(X)
+• Idea: choose f and p to be as similar as
+possible to reduce variance!
+17
+
+Importance sampling
+• Imagine we had PDF p exactly proportional to f
+• Normalization (unit integral) of PDF forces
+• Now
+
+• No variance, we could exactly determine the
+integral with a single sample!
+• Unfortunately, we used the unknown integral to
+compute c…
+18
+
+Practical issues
+• Conceptual issue: how to choose
+probability density p(x) (or p(ω))?
+– Goal: get best result with as few samples as
+possible, p as similar as possible to integrand
+– More on this later
+
+• Technical problem: how to generate
+samples Xi given PDF p(x)
+– “Sampling the PDF”
+– Today
+
+19
+
+Importance sampling in 1D
+• Problem statement: draw random
+samples, such that their density matches
+a given distribution (PDF)
+• “Draw samples”,”sampling” the PDF:
+generate samples with appropriate
+probability densities
+• Challenge: pseudo random number
+generators only produce uniform density
+• First: 1D case
+20
+
+Sampling arbitrary 1D PDFs
+• Discrete example: sample 4 events with
+given probabilities
+• “Generate events with appropriate
+probabilities“
+
+Discrete PDF
+21
+
+The inversion method
+http://en.wikipedia.org/wiki/Inverse_transform_sampling
+
+1. Compute the discrete CDF (cumulative density function)
+
+Discrete CDF
+22
+
+The inversion method
+http://en.wikipedia.org/wiki/Inverse_transform_sampling
+
+1. Compute the discrete CDF (cumulative density function)
+2. Sample canonic random variable
+
+Discrete CDF
+23
+
+The inversion method
+http://en.wikipedia.org/wiki/Inverse_transform_sampling
+
+1. Compute the discrete CDF (cumulative density function)
+2. Sample canonic random variable
+3. Generate event intersected by
+
+Discrete CDF
+24
+
+Continuous case: inverse transform
+sampling
+http://en.wikipedia.org/wiki/Inverse_transform_sampling
+
+Goal: sample from arbitrary PDF
+1. Compute the CDF
+2. Compute its inverse
+3. Obtain a uniformly distributed random
+number
+4. Compute sample
+
+25
+
+Sampling 2D PDFs (sample warping)
+Goal
+• Generate samples on a desired 2D domain
+(unit circle, triangle, hemisphere, sphere,
+etc.) with a desired density (uniform,
+desired nonuniform density)
+• Approach
+1. Start with samples from canonic random
+variables (pseudo-random number generator)
+2. Warp samples to desired domain, density
+26
+
+Sampling PDFs (sample warping)
+Two examples
+• Sampling directions with cosine
+distribution on the hemisphere
+• (Sampling the specular highlight with a
+Blinn microfacet distribution )
+
+27
+
+Sampling directions with cosine distribution
+• Will be used to construct random rays for
+ray tracing
+• “Sampling the random variable” means
+obtaining a random ray direction ω, with a
+desired density p
+• Here: desired density p(ω) = cos(θ)/π, where
+θ is angle between ω and normal n
+• Ray direction = point on unit (hemi-)sphere
+28
+
+Sampling directions with cosine distribution
+• Trick: uniform samples on disk can be
+mapped to directions with
+Direction distributed with
+
+n
+
+Map from disk
+to hemisphere
+
+Uniform samples (indexed with i) on disk
+
+29
+
+Uniformly sampling a disk
+• Uniform probability density on a unit disk
+
+• Goal: draw samples
+inside the disk
+that are distributed with desired pdf p
+
+30
+
+Uniformly sampling a disk
+• Problem: pseudo random number
+generators allow us only to draw samples
+from the canonical distribution
+
+31
+
+Rejection sampling
+http://en.wikipedia.org/wiki/Rejection_sampling
+
+• Simple solution for our
+problem
+• Draw samples
+• Reject if
+• Drawback:
+inefficient
+rejected
+accepted
+32
+
+Sample warping
+• Idea: transform (warp) samples to polar
+coordinates (radius r, angle θ)
+where ε1, ε2 canonical uniform random
+variables
+• Advantage: sample is always in unit circle
+• Problem?
+
+33
+
+Theory: sampling 2D PDFs
+• Need to solve two problems
+1. Sampling arbitrary, non-uniform PDFs
+2. Transforming PDFs between 2D (or higher
+dimensional) coordinate systems
+
+• Combine both steps for efficient sampling
+of PDFs
+– Will show example of uniformly sampling a
+disc
+
+34
+
+Sampling 2D PDFs: special case
+• Draw samples
+
+from 2D PDF
+
+• Special case
+If
+is separable, i.e.,
+we can independently sample
+using inversion method, as described
+earlier
+
+35
+
+Sampling 2D PDFs: general
+• Can express any 2D PDF as product of
+marginal and conditional densities
+http://en.wikipedia.org/wiki/Conditional_probability_distribution
+http://en.wikipedia.org/wiki/Marginal_density
+
+• Marginal density
+• Conditional density
+• Procedure: first sample
+,
+then
+using inversion method
+36
+
+Recap
+• So far, solved Problem 1: how to sample arbitrary, non-uniform 2D
+PDFs via marginal, conditional 1D PDFs; inversion sampling
+• Problem 2 remains open: want to generate samples in convenient
+coordinates systems
+– Our example: density given in Euclidean coordinates, but need to
+sample in polar coordinates to place samples in desired domain (unit
+disc)
+
+• Need to transform (warp) random variables between coordinate
+systems
+
+– „Express same random variable in different coordinate systems“
+– Transformation between coordinate systems represented by a 1-to-1
+mapping
+
+• But: when random variable is warped, how are densities
+before/after warping related?
+
+37
+
+Transforming 1D random variables
+• Given
+• PDF of warped random variable
+
+?
+
+– Transformation y = t(x) must be one-to-one
+
+• This implies
+
+PX(x)
+
+PY(y)
+x
+y = t(x)
+
+y
+
+But what is probability density of t(X)?
+
+38
+
+Transforming 1D random variables
+• Differentiating
+w.r.t x using the chain rule
+
+• Therefore, PDF of Y related to PDF of X as
+
+39
+
+Transforming n-D random variables
+• With n-dimensional random variable X
+• Bijective mapping Y = T(X) from Rn to Rn
+• Densities
+where
+• The Jacobi matrix is
+
+“How much area is
+stretched/squeezed by
+mapping T(X)”
+
+https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant
+
+40
+
+Transforming random variables
+• Same mechanism as for change of
+variables in multi-dimensional integration
+http://en.wikipedia.org/wiki/Integration_by_substitution#Substitution_for_multiple_variables
+http://en.wikipedia.org/wiki/Integration_by_substitution#Application_in_probability
+
+41
+
+Recipe to sample PDFs
+1. Express the desired PDF in a convenient
+coordinate system (e.g. Euclidean)
+2. Transform the PDF to different coordinate
+system suitable for sampling (depending on
+domain, e.g., unit disc)
+–
+–
+
+Find transformation T
+Compute determinant of Jacobian T
+
+3. Sample (multi-dimensional) PDF
+–
+–
+
+Compute marginal and conditional 1D PDFs
+Sample 1D PDFs using the inversion method
+42
+
+Uniformly sampling a disk
+1. Desired distribution in Euclidean coords.
+
+2. Transform PDF to polar coordinates r,θ
+suitable for sampling
+–
+
+Transformation (x,y)=T(r,θ) is
+
+–
+
+Jacobi matrix
+
+43
+
+Uniformly sampling a disk
+– Determinant is
+– Density in polar coordinates
+
+3. Sample 2D PDF p(r,θ)
+–
+
+Marginal
+
+–
+
+Conditional
+44
+
+Uniformly sampling a disk
+• Sample from
+and
+inversion method
+
+using
+
+– From before:
+– Get CDFs P(r), P(θ) by integrating PDFs and
+invert
+
+45
+
+Uniformly sampling a disk
+
+Polar coordinates
+
+Polar coords.
+
+Euclidean coords.
+
+46
+
+Recap: sampling directions
+• Want: directions ωi with
+• Given: uniform random variables
+• Get x,y,z coordinates of direction ωi using
+Direction distributed with
+
+Uniform samples ξ1, ξ2 on circle
+
+• Note:
+– Factor 1/π to normalize PDF to unit integral
+
+47
+
+Implementation note
+• Sampled direction is relative to local coordinate
+system at hit point (ray-surface intersection point)
+– Tangent frame, constructed using surface normal n
+
+• Transform to world coordinates for further ray
+tracing
+– See notes in Assignment 2
+
+Sampled direction
+
+n
+Tangent coordinate
+system at hit point
+48
+
+Other useful examples
+Sampling distributions on
+• Rectangles
+• Triangles
+• Spheres
+• Hemispheres
+• Details see for example PBRT book
+
+http://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations.html
+
+49
+
+Sampling the Blinn distribution
+• Recall Torrance-Sparrow BRDF
+θ
+
+• Blinn Microfacet distribution θi
+
+n
+
+ωh
+
+ωi
+
+– Shininess coefficient e
+
+D(ωh)
+
+θo
+ωo
+
+θh
+
+• Microfacet distribution D determines BRDF,
+try to distribute samples proportionally to D
+• Details see also
+http://www.pbr-book.org/3ed-2018/Light_Transport_I_Surface_Reflection/Sampling_Reflection_Functions.html#MicrofacetBxDFs
+
+50
+
+Sampling the Blinn distribution
+1. Sample half-angle direction ωh according to
+– Slightly different normalization than D(ωh), since
+D(ωh) is normalized w.r.t. projected solid angle,
+not solid angle
+
+2. Use ωh to find ωi by reflecting ωo around ωh
+2. Reflect ωo
+around ωh
+
+ωi
+
+n
+
+θ
+
+1. Construct ωh
+Given ωo
+51
+
+Sampling the Blinn distribution
+• Sample ωh in spherical coordinates θ, φ centered
+around normal
+• Change of coordinates to spherical coordinates
+
+n
+Azimuth φ
+
+θ
+
+1. Construct ωh
+Given ωo
+52
+
+Sampling the Blinn distribution
+• Given canonical random variables ξ1, ξ2
+• Sample φ = 2π ξ2, and cos θ = ξ11/(e+1)
+
+– Derivation see handwritten notes, PBRT book
+
+• PDF of sampled direction
+
+n
+Azimuth φ
+
+θ
+
+1. Construct ωh
+Given ωo
+53
+
+http://www.pbr-book.org/3ed2018/Light_Transport_I_Surfac
+e_Reflection/Sampling_Reflect
+ion_Functions.html#Microfacet
+BxDFs
+
+54
+
+Sampling the Blinn distribution
+• Note: in the end, we sample direction ωi, and we
+need p(ωi), not p(ωh)
+• Can show p(ωi) = p(ωh) / (4 ωo ¢ωh)
+– See PBRT book,
+
+http://www.pbr-book.org/3ed-2018/Light_Transport_I_Surface_Reflection/Sampling_Reflection_Functions.html#MicrofacetBxDFs
+
+• Hence, PDF of sampled direction ωi
+
+2. Reflect ωo
+around ωh
+Azimuth φ
+
+ωi
+
+n
+
+θ
+
+1. Construct ωh
+Given ωo
+55
+
+Finally
+• Use sampled directions and their PDF in
+Monte Carlo estimate
+
+56
+
+Implementation notes
+• To convert sampled spherical angles θ, φ
+to direction ωh, need local tangent
+coordinate system
+• If sampled ωi direction is below horizon
+(angle with normal larger than 90
+degrees), return 0 for BRDF value
+1. Construct ωh
+2. Reflect ωo
+around ωh ω
+i
+
+Given ωo
+57
+
+

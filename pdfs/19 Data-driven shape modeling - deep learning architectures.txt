@@ -1,0 +1,788 @@
+CMSC740
+Advanced Computer Graphics
+Matthias Zwicker
+Fall 2025
+
+Deep learning for geometry processing
+Goal: input 3D shapes into neural networks
+for analysis or modeling tasks
+
+Input
+3D shape
+
+Neural network to
+compute non-linear
+function
+Optimize millions
+of parameters via
+gradient descent
+
+Output
+
+Application
+dependent
+
+2
+
+Potential operations
+• Categorize, classify 3D shapes
+• Segment 3D shapes into parts
+• Retrieval from databases based on example, text
+• Synthesis of new shapes similar to shapes in
+database
+– Based on suitable low-dimensional shape
+representation
+
+• Completion of partial data (RGB(D) image(s) to 3D
+shapes)
+• Interactive editing, modeling, deformation (e.g.,
+sketch-based)
+• Multi-modal modeling (shapes, text, images;
+transcoding)
+3
+
+Questions/challenges
+• Which 3D shape representation to use as inputs to
+neural networks?
+– Meshes
+– Point clouds
+– Implicit function on discrete 3D grid (e.g. distance
+function)
+– Binary values (inside/outside) on 3D grids
+– 2D parameterization (flatten 3D shape to 2D domain)
+
+• How to design neural network architectures to
+operate on 3D shapes?
+• Challenges?
+– 2D surfaces embedded in 3D
+– Non-uniformly sampled
+4
+
+First: supervised learning
+Input
+3D shape
+
+Neural network to
+compute non-linear
+function
+
+• Supervised learning
+
+Output
+
+https://en.wikipedia.org/wiki/Supervised_learning
+
+– Known input-output pairs: assume each shape comes
+with known ground truth output, called label(s), (pershape or per-vertex labels)
+– Labels often manually annotated (e.g. shape class,
+part segmentation, natural language description, etc.)
+– Objective is to optimize network weights to make
+output as similar as possible to given labels
+– Difference between network output and desired labels
+evaluated using loss function
+5
+
+Deep learning for shape analysis
+Neural network architectures for 3D
+shapes, three popular examples
+• Convolutional networks on 3D shapes
+• Pointnet
+• Transformers
+Note: just a few select example techniques
+here, many more in recent literature
+
+6
+
+Generalizing Convolutions to
+3D Shape Representations
+
+7
+
+Convolution
+
+https://en.wikipedia.org/wiki/Convolution
+
+• 1D continuous example
+
+– Input function f: R → R
+– Convolution kernel g: R → R
+– Output is again a function (f * g): R → R
+
+8
+
+Discrete 2D convolution
+• Summation instead of integration
+
+Discrete input
+function f
+
+g
+
+Shift kernel g
+to each pixel
+
+Output value (f * g) via elementwise
+product and summation of f and g
+at each destination pixel
+Relation to convolutional neural networks (CNNs): in CNNs values in convolution
+kernel g represent network weights that will be trained based on given loss
+function; result of convolution is input into non-linear activation function
+
+9
+
+Properties
+Assuming finite support kernels (convolution kernel g is
+non-zero within limited range)
+• Sparse, linear (can be represented as multiplication
+)
+with Toeplitz matrix,
+https://en.wikipedia.org/wiki/Toeplitz_matrix#Discrete_convolution
+
+– Efficient: linear complexity for computation and storage
+
+• Local: output at each point depends on input only over
+certain region (“receptive field”)
+– By stacking (concatenating) convolutions, can analyze
+signal at different scales (“levels of abstraction”)
+
+• Translation equivariance (changing order of applying
+translation and convolution does not change output)
+– Analysis of input is independent of translation of input
+
+Goal
+
+• Preserve properties for convolution on 3D shapes
+10
+
+3D voxel grids
+• Represent shapes discretized on 3D grids
+– Similar to raster images, but with 3D voxels instead of 2D pixels
+
+• Alternatives
+
+– Binary inside/outside values per voxel
+– Implicit function
+• E.g., signed distance function
+
+• Advantage
+
+– Performing convolution (in 3D) straightforward
+
+• Disadvantage
+
+– Extra dimension required to represent data (surfaces are 2D, but
+voxel grids are 3D)
+– Memory, computation overhead
+– Workaround: hierarchical data structures (e.g., octrees,
+https://arxiv.org/abs/1712.01537)
+– Output depends on shape orientation (not rotation invariant)
+
+11
+
+Binary voxel grid
+• 3D ShapeNets: A Deep Representation for
+Volumetric Shapes, CVPR 2015
+• Trained as deep belief network
+Stride n: evaluate
+convolution only
+every-nth voxel
+
+https://3dshapenets.cs.princeton.edu/
+
+3D convolutions on
+uniform grid
+12
+
+Convolutions on Point Clouds
+
+13
+
+Graph convolutional networks
+• Meshes are graphs (nodes/vertices connected
+by edges)
+• Point clouds can be represented as graphs
+too, using k-nearest neighbor (k-nn) graph
+https://en.wikipedia.org/wiki/Nearest_neighbor_graph
+
+3-NN graph
+
+5-NN graph
+
+http://www.maths.dur.ac.uk/users/andrew.wade/research/graphs.html
+
+14
+
+Generalize convolution to graphs
+• Discrete 2D convolution
+
+Interpret as
+operation on graph
+Function f as
+function on graph
+
+Discrete input
+function f
+
+g
+Output (f * g)
+
+Output
+Kernel g (f * g)
+Each value in kernel
+associated with
+one graph neighbor
+Graph structure used to
+define convolution kernels on
+neighbors in graph (instead of
+spatial neighbors) 15
+
+CNNs on point clouds
+• “PointCNN: Convolution On X-Transformed Points”,
+Li et al., NeurIPS 2018
+https://arxiv.org/pdf/1801.07791.pdf
+
+– Goal: generalize convolution to irregularly sampled
+point clouds
+
+• Convolution on k-nearest neighbor graph of point
+cloud
+– Issues with naïve approach: not clear how to associate
+convolution kernel values to neighbors in k-nn graph
+(which weight in kernel for which neighbor)
+
+• X-convolution: learn a transformation of k-nearest
+neighbors that should introduce invariance to
+ordering, placement of neighbors
+– Called X-transformation matrix
+
+16
+
+X-convolution
+•
+•
+•
+•
+
+Evaluation point p
+k-nearest neighbor points P
+Features F of neighbor points
+Learnable X-transformation matrix X
+
+• Learnable (discrete) convolution kernel K
+
+https://arxiv.org/pdf/1801.07791.pdf
+17
+
+X-convolution
+• Shape classification results, ShapeNet40
+
+Ablation study
+
+https://arxiv.org/pdf/1801.07791.pdf
+
+18
+
+Note
+• Many other techniques available to apply
+convolutions to surfaces (point clouds,
+meshes)
+– Using spectral graph convolution
+https://arxiv.org/abs/1609.02907
+– Using diffusion on surfaces, which can represent
+radially geodesic convolution
+https://arxiv.org/abs/2012.00888
+– As a concatenation of continuous reconstruction,
+continuous convolution and sampling on point
+clouds
+https://dl.acm.org/doi/10.1145/3197517.3201301
+
+• Etc.
+
+19
+
+PointNet
+(for Point Cloud Processing)
+
+20
+
+PointNet
+
+https://arxiv.org/pdf/1612.00593.pdf
+
+• Many operations on point clouds, including
+classification, compute set function
+(invariant to order of points) of the point
+cloud
+– Point cloud with n points {x1,…,xn}
+– Goal: compute function f({x1,…,xn}) = “class label”
+
+• Challenges: function f should be
+
+– Invariant to ordering of points
+– Invariant to spatial transformation (rotation,
+translation) points
+21
+
+PointNet: order invariance
+• Key idea: use approximation
+where
+– h is function of single point to higher
+dimensional feature vector (dimensionality of
+points N=3, K>>N)
+– g is symmetric function (invariant to order of n
+input features) https://en.wikipedia.org/wiki/Symmetric_function
+
+22
+
+PointNet: order invariance
+• Proof (see paper): arbitrary continuous set
+function f can be approximated to any
+accuracy ε if K is sufficiently large
+Symmetric function g
+
+Arbitrary
+continuous set
+function
+
+Function
+RK → R
+
+Maximum of
+each feature
+element over all
+points
+
+K-dim.
+feature
+vector of
+input
+point xi
+23
+
+PointNet: invariance to spatial transformation
+• Train a spatial transformer network
+https://arxiv.org/abs/1506.02025
+
+– Neural network that produces spatial
+transformation as its output
+– Here: just rotation
+– Different from transformers to implement
+attention
+
+• Intuition: spatial transformer rotates point
+cloud into a “canonic” pose
+– All objects of a certain class will be oriented the
+same way
+– Cars: x-y is ground plane, x axis points to right of
+car, y to front, z up
+24
+
+Implementation
+• h and γ implemented using multilayer perceptrons
+(MLPs), here feature dimension K = 1024
+• Two spatial transformers (one for point cloud, one
+for features) for better performance
+h
+
+Spatial transformers
+
+Symmetric function g
+
+γ
+
+25
+
+Implementation
+• Concatenate point features and global
+features to produce per-point output
+– E.g. for segmentation, normal estimation
+
+26
+
+Results
+Prediction Ground truth
+
+Segmentation (per-point label)
+Normal estimation
+27
+
+CNNs vs PointNet
+Aspect
+
+PointNet
+
+CNNs (on voxels)
+
+Input Representation
+
+Raw points
+
+Voxel grid / 2D
+projections
+
+Data Efficiency
+
+High (uses fewer points)
+
+Low (dense grid, many
+empty voxels)
+
+Permutation Invariance
+
+Yes
+
+No (grid-structured
+input)
+
+Spatial Locality
+
+Weak (no local
+neighborhoods)
+
+Strong (local receptive
+fields)
+
+Computation
+
+Efficient (sparse ops)
+
+Expensive (dense
+convolutions)
+
+Memory Usage
+
+Low
+
+High
+
+Detail Capture
+
+Global only
+
+Good for local structures
+
+Notes:
+• PointNet++ includes hierarchy/spatial locality https://github.com/charlesq34/pointnet2
+• CNN architectures can be built without voxelization (e.g. PointCNN, see
+earlier slides)
+
+28
+
+Transformers
+(for 3D Point Cloud Processing)
+
+29
+
+Point transformer
+• “Point Transformer”, ICCV 2021
+https://arxiv.org/abs/2012.09164, https://github.com/POSTECH-CVLab/point-transformer
+
+• Transformer architecture applied to point
+clouds
+– “Attention mechanism” to differentially
+weight different parts of data
+– First developed for natural language
+processing (NLP) https://arxiv.org/abs/1706.03762
+
+30
+
+Transformers
+• Architecture consisting of self-attention layers
+– Input: set of feature vectors (“tokens”) in context window
+– Output: set (usually same size) of transformed feature vectors
+
+• Self-attention captures all pairwise relationships between
+features within context window
+
+– Computes each output feature i using weighted sum of all input
+features j, with pairwise weights to model contribution of input j
+to output i
+
+• Advantages
+
+– Consider all pairwise relations in context window using learned
+weighting (attention: give more weight to more relevant
+elements in context window, ignore others)
+– Enables parallel instead of recursive processing as in previous
+architectures (RNN, LSTM)
+– State of the art performance for many applications
+
+• Disadvantage: complexity quadratic in size of context window
+– Unless sparse attention techniques are used
+31
+
+Transformers
+• NLP: word embedding vectors as input
+features/tokens
+https://arxiv.org/abs/1706.03762
+
+– Encoder/decoder architecture for sequence
+processing
+
+• Computer vision: input tokens (features)
+computed for image patches instead of per
+pixel
+– Vision transformer
+
+https://arxiv.org/abs/2010.11929 https://en.wikipedia.org/wiki/Vision_transformer
+
+– Pixel-wise features intractable due to
+quadratic complexity
+
+• Here: transformers for point clouds
+https://github.com/POSTECH-CVLab/point-transformer
+
+32
+
+Scalar dot-product attention layer
+https://arxiv.org/abs/2012.09164, https://github.com/POSTECH-CVLab/point-transformer
+
+• Input features xj, output features yi
+Pairwise scalar weight for
+feature i, j
+
+• Context window X
+• Feature transformations ϕ, ψ, α (linear or MLP), also
+called queries, keys, values
+• Position encoding δ
+– Depends on i and j, e.g. θ(pi-pj), MLP θ, point positions pi
+– Attention layer is order independent, if not for positional
+encoding
+
+• Normalization ρ (softmax)
+
+33
+
+Scalar dot-product attention layer
+https://arxiv.org/abs/2012.09164, https://github.com/POSTECH-CVLab/point-transformer
+
+• Input features xj, output features yi
+Pairwise scalar weight for
+feature i, j
+
+• Context window X
+
+Dot product, scalar
+attention weight for
+input j on output i
+
+• Feature transformations ϕ, ψ, α (linear or MLP), also
+called queries, keys, values
+• Position encoding δ
+– Depends on i and j, e.g. θ(pi-pj), MLP θ, point positions pi
+– Attention layer is order independent, if not for positional
+encoding
+
+• Normalization ρ (softmax)
+
+34
+
+Vector attention layer
+https://arxiv.org/abs/2012.09164, https://github.com/POSTECH-CVLab/point-transformer
+
+• Vector-valued relation function β (e.g.
+subtraction) instead of dot product
+
+Pairwise weight vector for
+feature i, j
+
+Element-wise
+multiplication
+
+35
+
+Vector attention layer
+https://arxiv.org/abs/2012.09164, https://github.com/POSTECH-CVLab/point-transformer
+
+• Vector-valued relation function β (e.g.
+subtraction) instead of dot product
+• Vector-valued mapping function γ (e.g.
+MLP), instead of dot product
+Pairwise weight vector for
+feature i, j
+
+Vector of weights for
+each element in
+input j on output i
+
+Element-wise
+multiplication
+
+36
+
+Application to point clouds
+• Transformer layers as described above can
+be applied in many applications
+(NLP/LLMs, vision transformers, etc.)
+• Application to point clouds
+– Here: technique described in “Point
+Transformer”, ICCV 2021
+https://arxiv.org/abs/2012.09164, https://github.com/POSTECH-CVLab/point-transformer
+
+37
+
+Point transformer layer
+• Applied locally to k-nearest neighborhood X(i)
+– MLP mapping function γ , linear feature
+transformations ϕ, ψ, α
+– MLP position encoding
+Features and
+positions in X(i)
+
++
+Point transformer layer
+
+Point transformer block, linear pre-,
+post-processing, residual connection
+
+38
+
+Downsampling layer
+• Operations to change cardinality of point
+set
+Farthest point sampling:
+Greedy algorithm, selecting
+next sample as input point
+farthest from existing
+samples, until desired
+cardinality reached
+
+Downsampling pointset p1 to pointset p2
+Feature aggregation in knn-neighborhood
+(k=16) using elementwise local max pooling
+39
+
+Classification architecture
+• (N,M): point set cardinality N, feature size M
+
+40
+
+Upsampling layer
+Low-res
+pointset p1,
+features x1
+
+Linear interpolation of lowres features x1 at locations
+of high-res points p2
+
+xinterpolated, p2
+
+High-res
+pointset p2 ,
+features x2
+
+Skip
+connection
+
+y = xinterpolated + x2
+Upsampling pointset p1 to pointset p2
+Output: features y at high-res points p2
+41
+
+Semantic segmentation architecture
+U-net architechture with skip connections
+
+42
+
+Semantic segmentation results
+
+https://arxiv.org/abs/2012.09164, https://github.com/POSTECH-CVLab/point-transformer
+
+43
+
+Semantic segmentation results
+• S3DIS dataset, 271 rooms, 13 categories
+• Mean classwise intersection over union (mIoU), mean of classwise
+accuracy (mAcc), overall pointwise accuracy (OA)
+• PointNet: MLP-based; SegCloud: voxel-based; SPGraph: graph-based,
+PAT: attention-based; MinkowskiNet: sparse convolution, KPConv:
+continuous convolution
+• Number of parameters
+– Point Transformer: 4.9M; KPConv: 14.9M; SparseConv: 30.1M
+
+https://arxiv.org/abs/2012.09164, https://github.com/POSTECH-CVLab/point-transformer
+44
+
+Ablation studies
+
+45
+
+Transformers vs. CNNs
+Concept
+
+CNN
+
+Transformer
+
+Basic operation
+
+Convolution (weighted
+sum using learned, but
+fixed convolution kernel
+weights)
+
+Self-Attention (weighted
+sum using datadependent attention
+weights)
+
+Input structure
+
+Grid (pixels, voxels, etc.)
+
+Tokens (words, image
+patches, etc.)
+
+Parameter sharing
+
+Shared kernel weights
+
+Shared feature
+transformations χ, ψ, α
+(projection matrices)
+
+Locality
+
+Local receptive field
+(convolution kernel with
+fixed size)
+
+Global (any token can
+attend to/weight any
+other)
+
+Inductive bias
+
+Translation invariance,
+locality
+
+Context learning,
+position-awareness via
+position embeddings δ
+
+Computation
+
+Linear in convolution
+kernel size
+
+Quadratic in token count
+in context window
+(unless sparse/efficient)
+
+46
+
+Transformers pros/cons
+• Pros
+– Self-attention captures long-range and local
+dependencies (depending on context window size)
+– Can learn complex relationships
+
+• Cons
+– Quadratic complexity (unless sparse attention is
+used)
+– Large data and compute requirements for training
+
+• Overall: most powerful architecture for many
+applications
+47
+
+

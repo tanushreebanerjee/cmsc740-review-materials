@@ -1,0 +1,440 @@
+CMSC740
+Advanced Computer Graphics
+Matthias Zwicker
+Fall 2025
+
+Scene reconstruction from images
+• Inverse rendering problem: given images of
+static scene from different viewpoints,
+camera parameters; reconstruct scene
+parameters, such that rendered images match
+input
+• Applications
+– Extract 3D representation from scene parameters
+– Novel view synthesis from arbitrary viewpoints
+(simply plug new camera parameters into f)
+– Re-lighting (required for most practical
+applications)
+– Material editing
+2
+
+Scene reconstruction from images
+• Assume: have rendering function f
+– Scene parameters (scene): could be array of
+triangle vertices, light sources, BRDF
+parameters, neural network-based geometry
+representation, etc.
+
+3
+
+Approach
+• Optimize scene parameters scene to minimize
+rendering loss l over all input images I
+
+Input
+image
+
+Rendered
+image
+
+• Optimization using gradient descent
+
+4
+
+Challenges
+• Suitable rendering function f
+– Need to compute gradients wrt. scene
+parameters
+
+– Automatic differentiation
+
+• Suitable scene parameterization
+– Rendering function and scene representation
+need to be powerful enough to reproduce
+input images
+5
+
+NeRF
+• “NeRF: Representing Scenes as Neural Radiance Fields for
+View Synthesis”, Mildenhall et al, 2020
+• Key ideas
+https://arxiv.org/abs/2003.08934
+
+– Volumetric rendering function using volumetric emission and
+absorption
+– Volume density and emission (radiance) represented by neural
+networks
+
+• Notes
+– Rendering function not physically-based, no model of light
+scattering on surfaces
+– Assumes mapping of input pixels to 3D rays is known (known
+camera location, orientation, field of view)
+– Doesn’t directly recover 3D surfaces due to volumetric rendering
+model
+– Enables novel view synthesis (rendering scene from different
+camera viewpoints), but not re-lighting; NeRF was first highly
+successful method for novel view synthesis that is based on
+inverse rendering
+6
+
+Volumetric rendering function
+• Color C(r) of ray r(t) = o+td, origin o,
+direction d
+
+• Transmittance
+• Density (scattering coefficient) s (r(t))
+• Radiance (volumetric emission) c(r(t), d)
+• Neural network to represent both s and c
+7
+
+Volumetric rendering function
+• Approximate integral using numerical
+quadrature (similar to ray marching)
+– N sample points along ray at locations ti
+– Step size
+Emission in
+segment i
+
+Probability
+to reach eye
+Probability for
+emission in i-th
+segment
+
+r
+
+di
+
+Ti
+ti
+
+ti+1
+8
+
+Volumetric rendering function
+
+Ray marching, rays
+defined by input images
+Samples on rays with
+positions, directions
+(r(t), d)
+
+9
+
+Volumetric rendering function
+Neural
+network
+
+Ray marching, rays
+defined by input images
+Samples on rays with
+positions, directions
+(r(t), d)
+
+Colors
+c(r(t), d)
+Densities
+s (r(t))
+for each
+sample
+10
+
+Volumetric rendering function
+Neural
+network
+(Slide 7)
+
+Ray marching, rays
+defined by input images
+Samples on rays with
+positions, directions
+(r(t), d)
+
+Colors
+c(r(t), d)
+Densities
+s (r(t))
+for each
+sample
+
+Optimize
+colors,
+densities to
+minimize loss
+11
+
+Optimization
+• Scene representation using neural network
+• Loss
+
+At each 3d point x, direction
+d, network outputs radiance
+c, density s
+
+Sum over all Rendered Observed
+rays/pixels
+color color in input
+
+• Ground truth C(r), rendered estimate C(r)
+• Gradients of pixels C(r) colors wrt. network
+weights/biases Q easy to compute using
+backpropagation (automatic differentiation)
+12
+
+Network architecture
+• MLP (fully connected layers), original NeRF approach
+
+• Positional encoding: instead of position p, network
+input is
+– Applied to normalized coordinates p separately
+– Position x: L=10, direction d: L=4
+– Intuition: helps network to better learn high-frequency
+functions
+13
+
+Hierarchical sampling
+• Train two networks simultaneously
+• Coarse network: Nc=64 samples per ray
+• Fine network: Nf =128 samples per ray
+• Use coarse samples to define piecewise
+constant PDF along ray to importance
+sample fine samples
+– Probabilities for segments given by coarse
+samples
+“probability for radiance being emitted
+in i-th segment, and transmitted along
+ray all the way to eye”
+14
+
+Results
+
+https://www.matthewtancik.com/nerf
+
+• View synthesis
+• Depth image reconstruction
+• 3D surface reconstruction using marching
+cubes
+
+15
+
+Limitations of NeRF
+• Doesn’t attempt to represent surface directly (only volumetric
+density s)
+• Treats pixels as infinitesimal rays, doesn’t take into account pixel
+areas
+• Doesn’t take into account imaging artifacts such as blur, over/under-exposure
+• Only works for static scenes
+• Requires known camera parameters
+• Training and rendering slow
+• Requires many input images for high quality reconstruction
+• Doesn’t take into account potential appearance variation in input
+images (different illumination, time, time of year, etc.)
+• Doesn’t recover BRDF parameters and illumination
+• Only uses 3D locations to predict scene (density, radiance); does not
+use correspondence information between 3D locations and images
+
+16
+
+Surface reconstruction
+• How to reformulate problem to enable
+reconstruction of well-defined surfaces?
+
+17
+
+Surface reconstruction
+• “NeuS: Learning Neural Implicit Surfaces
+by Volume Rendering for Multi-view
+Reconstruction”
+https://arxiv.org/pdf/2106.10689.pdf
+
+• Optimize neural SDF (signed distance
+function) instead of density to represent
+surface
+• But still use volumetric rendering similar
+to NeRF
+• Challenge: relationship between SDF and
+density, which is required for volumetric
+rendering?
+18
+
+NeuS
+• Neural SDF f(p), 3D point p
+• Neural radiance field c(p, v), direction v
+• Rendering function (almost, but not exactly same as NeRF)
+
+Weight function
+
+• Opaque density function r derived from SDF f
+
+19
+
+NeuS weight function w
+Designed to be
+• Unbiased: w(t) has local maximum for value t when
+f(p(t)) = 0
+– “Color contribution from point on surface is strongest”
+
+• Occlusion aware: given two points t0 < t1, where
+f(t0) = f(t1), then w(t0) > w(t1)
+
+w(t) is unbiased, maximum where f=0
+
+20
+
+Training
+• Include Eikonal term to regularize SDF
+
+• Hierarchical sampling, similar to NeRF
+
+21
+
+Results
+
+https://lingjie0206.github.io/papers/NeuS/
+
+NeuS
+22
+
+Results
+• Chamfer distance to ground truth 3D scans
+
+DTU dataset
+https://roboimagedata.compute.dtu.dk/?page_id=36
+
+23
+
+Pixel modeling
+• How to increase reconstruction accuracy
+by more accurately modeling image
+formation in pixels of real cameras?
+
+24
+
+Mip-NeRF
+• “Mip-NeRF: A Multiscale Representation for
+Anti-Aliasing Neural Radiance Fields”
+https://github.com/google/mipnerf
+• Key idea: radiance should take into account
+pixel size (anti-aliasing)
+• Extend spatial encoding g(x) to capture local
+size of conical beam (details see paper) Generalized
+spatial
+encoding
+m, S: center, size of
+ellipsoid to locally
+approximate beam
+Pixel modeled as
+single ray
+
+Pixel modeled as
+conical beam
+
+25
+
+Mip-NeRF
+• “Mip-NeRF: A Multiscale Representation for
+Anti-Aliasing Neural Radiance Fields”
+https://github.com/google/mipnerf
+• Key idea: radiance should take into account
+pixel size (anti-aliasing)
+• Extend spatial encoding g(x) to capture local
+size of conical beam (details see paper) Generalized
+spatial
+encoding
+g(m,S)
+m, S: center, size of
+ellipsoid to locally
+approximate beam
+Pixel modeled as
+single ray
+
+Pixel modeled as
+conical beam
+
+26
+
+Results
+
+27
+
+Leveraging correspondence for sparse input data
+
+• Observation
+– To perform 3D reconstruction using
+correspondence and triangulation, we only
+need correspondence between two views
+– In contrast, inverse rendering typically
+requires observation of same scene point from
+many viewpoints
+
+• How to leverage correspondences between
+3D locations and 2D image regions to
+improve performance of inverse rendering
+under sparse input views?
+28
+
+Sparse input views
+• “pixelNeRF: Neural Radiance Fields from
+One or Few Images”
+https://arxiv.org/pdf/2012.02190.pdf
+
+• Key idea:
+– Project 3D sample points on rays to retrieve
+correspondence information between 3D
+sample points and images, encoded as neural
+network features
+– Use local image features to help NeRF network
+predict density, radiance
+
+29
+
+Architecture
+
+• 2D feature maps W using CNN encoder
+• NeRF f
+– Projection of 3D sample location x onto image
+plane p(x)
+– Positional encoding g
+– Direction d, density s, radiance c
+30
+
+Architecture
+
+• 2D feature maps W using CNN encoder
+• NeRF f
+– Projection of 3D sample location x onto image
+plane p(x)
+– Positional encoding g
+– Direction d, density s, radiance c
+31
+
+Multiple input views
+• Intermediate feature for each view i using
+network f1
+• Aggregation (averaging y) over multiple
+views and color/density prediction using
+network f2
+
+32
+
+Multiple input views
+
+Pixel feature
+in view n
+
+Aggregation
+
+Pixel feature
+in view 1
+
+33
+
+Results
+
+• Trained on data set, applied to test scene
+without scene-specific training
+
+34
+
+
