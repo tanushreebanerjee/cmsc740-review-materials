@@ -289,6 +289,118 @@ L = Σ_r ||C(r) - Ĉ_coarse(r)||² + ||C(r) - Ĉ_fine(r)||²
 2. **Known cameras:** Requires known camera parameters
 3. **No direct surfaces:** Volumetric representation, surfaces extracted via isosurface
 4. **No re-lighting:** View-dependent radiance, not material properties
+5. **Static scenes only**
+6. **Training and rendering slow**
+7. **Requires many input images**
+
+### NeRF-W (NeRF in the Wild)
+
+**Key Paper:** "NeRF in the Wild: Neural Radiance Fields for Unconstrained Photo Collections" (CVPR 2021)
+
+**Goal:** NeRF using images from different cameras, times, conditions
+
+**Challenges:**
+1. Different times of day, atmospheric conditions, imaging pipelines
+2. Transient objects (people, cars, etc.)
+
+**Solutions:**
+
+#### 1. Latent Appearance Model
+- Per-image latent appearance vector l_i
+- Represents time of day, atmospheric conditions, camera settings
+- Image-dependent radiance: c_i(x, d, l_i)
+
+#### 2. Transient Objects
+- Separate static and transient radiance fields
+- Static: c(x, d), σ(x)
+- Transient: c_i^(τ)(x, d), σ_i^(τ)(x)
+- Uncertainty β_i(x) to weight loss
+
+**Loss function:**
+```
+L_i(r) = w_i(r) ||C_i(r) - Ĉ_i(r)||² + λ_u (1/w_i(r)) + λ_τ σ_i^(τ)(r)
+```
+
+Where w_i(r) = 1/β_i(r) (uncertainty weighting)
+
+### Block-NeRF
+
+**Extension to large scenes:**
+- Train multiple NeRFs separately (one per city block)
+- Combine for rendering
+- Uses Mip-NeRF (beam geometry) + NeRF-W (appearance codes)
+- Visibility prediction to select relevant NeRFs
+
+### NeuS: Neural Implicit Surfaces
+
+**Key Paper:** "NeuS: Learning Neural Implicit Surfaces by Volume Rendering for Multi-view Reconstruction"
+
+**Goal:** Reconstruct well-defined surfaces (not just volumetric density)
+
+**Approach:**
+- Optimize neural SDF f(p) instead of density σ
+- Still use volumetric rendering similar to NeRF
+- Challenge: Relationship between SDF and density for volumetric rendering
+
+**Components:**
+- Neural SDF: f(p) → signed distance value
+- Neural radiance field: c(p, v) → color
+- Rendering function with weight function w(t)
+
+**Weight function w(t):**
+- **Unbiased:** w(t) has local maximum when f(p(t)) = 0
+- **Occlusion aware:** For t₀ < t₁ where f(t₀) = f(t₁), then w(t₀) > w(t₁)
+- Color contribution strongest from points on surface
+
+**Training:**
+- Include Eikonal term to regularize SDF: ||∇f|| = 1
+- Hierarchical sampling similar to NeRF
+- Better surface reconstruction than NeRF
+
+### Instant Neural Graphics Primitives (Instant NGP)
+
+**Key Paper:** "Instant Neural Graphics Primitives with a Multiresolution Hash Encoding" (2022)
+
+**Goal:** Faster training and rendering than original NeRF
+
+**Approach: Hybrid grid/neural network**
+- Store learnable feature vectors on multi-resolution grid (using spatial hashing)
+- Use small neural network that takes feature vectors as input
+- Produces radiance and density
+
+**Architecture:**
+- Multi-resolution hash grid storing feature vectors
+- Spatial hashing for sparse grid storage
+- Linear interpolation and concatenation of feature vectors over multiple resolutions
+- Small MLP to predict radiance and density
+
+**Advantages:**
+- Much faster training than original NeRF
+- Higher quality than spatial encoding
+- No collision handling needed for spatial hashing (still works)
+
+### Gaussian Splatting (3D Gaussian Splatting)
+
+**Key Paper:** "3D Gaussian Splatting for Real-Time Radiance Field Rendering" (2023)
+
+**Approach:**
+- Represent radiance field using 3D Gaussians instead of neural network
+- Parameters: coefficients c_i, covariances Σ_i, centers x_i
+- Radial basis functions: weighted sum of Gaussians
+
+**Volumetric rendering:**
+- Same volume rendering model as NeRF
+- Color and density: c(r(t)), σ(r(t)) from Gaussian evaluation
+- Ray marching through Gaussians
+
+**Advantages:**
+- Very fast rendering (real-time)
+- High quality
+- Efficient representation
+
+**Training:**
+- Optimize Gaussian parameters (positions, covariances, colors)
+- Adaptive density control (add/remove Gaussians)
 
 ### Practice Problem 3
 
@@ -313,38 +425,99 @@ L = Σ_r ||C(r) - Ĉ_coarse(r)||² + ||C(r) - Ĉ_fine(r)||²
 2. **Clothing:** Complex geometry and materials
 3. **Temporal consistency:** Frame-to-frame coherence
 
-### Approaches
+### SMPL (Skinned Multi-Person Linear Model)
 
-#### 1. Deformable NeRF
-- Model deformation using skeleton or blend shapes
-- NeRF conditioned on pose parameters
-- **Input:** Position x, direction d, pose θ
-- **Output:** Density σ, radiance c
+**Key Paper:** "SMPL: A Skinned Multi-Person Linear Model" (ACM TOG 2015)
 
-#### 2. Neural Human Rendering
-- Separate geometry and appearance
-- Geometry: SDF (signed distance field) or occupancy
-- Appearance: View-dependent radiance
-- **Advantages:** Better geometry, re-lighting possible
+**Purpose:** Parametric model for pose- and body shape-dependent geometry
 
-#### 3. Instant Avatar Methods
-- Faster training/inference
-- Use hash grids or other efficient representations
-- Real-time or near-real-time performance
+**Function:**
+```
+geometry = SMPL(body pose, body shape parameters)
+```
 
-### Key Techniques
+**Based on:** Skeletal animation (rigging and skinning)
 
-**Pose conditioning:**
-- Encode skeletal pose
-- Use canonical space + deformation field
+#### Skeletal Animation Basics
 
-**Temporal consistency:**
-- Regularization terms in loss
-- Temporal smoothness constraints
+**Rigging:**
+- Template mesh in reference pose
+- Skeleton: joints connected via bones (kinematic chain)
+- Skin weights: influence of each bone on each vertex (matrix W)
 
-**Multi-view consistency:**
-- Ensure geometry consistent across views
-- Use silhouette constraints
+**Linear Blend Skinning (LBS):**
+```
+x'_i = Σ_b w_{bi} T_b x_i
+```
+
+Where:
+- x_i: Vertex i in reference pose
+- x'_i: Deformed vertex
+- w_{bi}: Weight of bone b on vertex i
+- T_b: Transformation matrix of bone b
+
+**Forward Kinematics:**
+- Compute T_b from joint angles
+- Step-by-step along kinematic chain from root
+- Better to use dual quaternions instead of matrices
+
+#### SMPL Extensions
+
+**Limitations of basic LBS:**
+- Cannot match detailed deformed shapes
+- Single template, no identity-specific shape
+
+**SMPL solution:**
+1. **Identity-specific blend shapes:**
+   ```
+   B_S(β) = Σ_n β_n S_n
+   ```
+   - S_n: Pre-trained basis vectors
+   - β_n: Shape coefficients (fit to data)
+   - Typically 10 shape coefficients
+
+2. **Pose-dependent blend shapes:**
+   ```
+   B_P(θ) = Σ_n R_n(θ) P_n
+   ```
+   - P_n: Pre-trained pose-dependent vectors
+   - R(θ): Function mapping 23 joint angles to rotation matrices
+   - Uses Rodrigues' formula
+
+3. **Final geometry:**
+   ```
+   vertices = T + B_S(β) + B_P(θ)
+   deformed = LBS(vertices, W, θ)
+   ```
+
+**SMPL Parameters:**
+- N = 6890 vertices
+- K = 23 joints
+- Template mesh T, blend weights W (pre-trained)
+- Identity blend shapes S_n (pre-trained)
+- Pose-dependent blend shapes P_n (pre-trained)
+- Shape coefficients β (fit per person)
+- Joint angles θ (fit per pose)
+
+### Neural Actor Approach
+
+**Goal:** Learn rendering function for virtual human from videos
+
+**Architecture:**
+```
+image = f(camera, geometry, appearance)
+geometry = SMPL(pose, shape)
+```
+
+**Key idea:** Inverse deformation to canonical space
+- NeRF in canonical (fixed pose) space
+- Map sample points to canonical space by inverting LBS
+- Use skinning weights from closest surface point
+
+**Training:**
+- Multi-view video (11-12 cameras, ~30,000 frames)
+- Infer pose from images
+- Optimize appearance parameters
 
 ### Practice Problem 4
 

@@ -322,6 +322,12 @@ Typically β = 2.
 - Need to compute probability densities for each sample under all strategies
 - Convert between surface area and solid angle densities: p_solid_angle = p_area / (cos × r²)
 
+**Example: Direct Illumination**
+- Take two samples for each next event estimation:
+  - One by sampling BRDF/BSDF (next randomly sampled ray direction)
+  - One by sampling the light source
+- Combine using MIS weights
+
 **MIS Implementation Pseudocode:**
 ```
 function computeMISContribution(sample, strategies):
@@ -338,6 +344,44 @@ function computeMISContribution(sample, strategies):
     
     return sum(contributions) / len(strategies)
 ```
+
+### Beyond Uniform Random Numbers
+
+**Problem:** Uniform random samples can have large gaps and dense clusters, leading to high variance.
+
+**Solutions:**
+
+#### 1. Stratified Sampling
+- **Idea:** Divide sample space into strata, place one sample per stratum
+- **Jittered sampling:** Uniform grid, random sample in each cell
+- **Advantages:** Reduces clumping, lower variance
+- **Disadvantages:** Not suitable for high dimensions (curse of dimensionality)
+
+**Stratified Sampling Pseudocode:**
+```
+function stratifiedSample(n, dim):
+    samples = []
+    grid_size = ceil(n^(1/dim))
+    for each cell in grid:
+        offset = randomUniform()  // jitter within cell
+        sample = cell_center + offset * cell_size
+        samples.append(sample)
+    return samples
+```
+
+#### 2. N-Rooks (Latin Hypercube) Sampling
+- **Idea:** Ensure each dimension has exactly one sample per "row"
+- **Advantage:** Can generate any number n of samples (not restricted to n×m grid)
+- **Better for higher dimensions than jittered grid**
+
+#### 3. Quasi-Monte Carlo (QMC)
+- **Idea:** Use low-discrepancy sequences instead of pseudo-random numbers
+- **Low-discrepancy sequences:** More uniform distribution, less clumping
+- **Examples:** Halton sequence, Hammersley sequence
+- **Advantage:** Theoretically better convergence than Monte Carlo
+- **Can substitute directly for pseudo-random points in [0,1]^n**
+
+**Key insight:** All improved sampling sequences yield points (ξ₁, ξ₂, ..., ξₙ) in unit hypercube [0,1]^n, can directly substitute for pseudo-random points.
 
 ### Practice Problem 3
 
@@ -387,6 +431,73 @@ Compute MIS estimate using balance heuristic.
 
 ---
 
+## Three-Point Form and Measurement Equation
+
+### Three-Point Form of Rendering Equation
+
+**Surface area integration instead of solid angle:**
+
+**Change of variables:**
+```
+dω_i = (cos θ_y' / ||x - y'||²) dA(y')
+```
+
+**Three-point form:**
+```
+L_o(x → y) = L_e(x → y) + ∫_surface f_r(x, y' → y) L_o(y' → x) G(y' ↔ x) dA(y')
+```
+
+Where:
+- **Geometry term:** G(y' ↔ x) = V(y' ↔ x) (cos θ_x cos θ_y' / ||x - y'||²)
+- **Visibility function:** V(y' ↔ x) = 1 if visible, 0 if occluded
+
+**Advantages:**
+- Explicitly handles occlusion
+- More flexible for path sampling strategies
+- Enables bidirectional path tracing
+
+### Measurement Equation
+
+**Pixel value I_j of pixel j:**
+```
+I_j = ∫_hemisphere W_j(x, ω) L(x, ω) cos θ dω dA
+```
+
+Where:
+- **W_j:** Importance function for pixel j (box function: 1 inside pixel, 0 elsewhere)
+- **L(x, ω):** Radiance
+
+**Surface area form:**
+```
+I_j = ∫_surface ∫_surface W_j(x → y) L_o(x → y) G(x ↔ y) dA(x) dA(y)
+```
+
+### Recursive Expansion
+
+**Neumann series expansion:**
+```
+L_o = L_e + T L_e + T² L_e + T³ L_e + ...
+```
+
+**Path contribution function:**
+- Path of length k: x₀ (light) → x₁ → ... → xₖ (camera)
+- Contribution: product of emission, BRDFs, geometry terms, visibility
+
+**Monte Carlo estimation:**
+- Sample random paths
+- Path probabilities: product of vertex probabilities p(x_i) and path length probability p(k)
+- In practice: construct paths via ray tracing, not direct surface sampling
+
+### Path Tracing Revisited (Three-Point Form)
+
+**Expressed using three-point form:**
+- Sample paths incrementally from eye
+- At each step, connect to light to obtain path of length k
+- Terminate using Russian roulette
+- Many terms in geometry/density division cancel out
+
+**Key insight:** Three-point form is equivalent to hemispherical form, but more flexible for advanced path sampling.
+
 ## Bidirectional Path Tracing (BDPT)
 
 ### Motivation
@@ -402,6 +513,16 @@ Compute MIS estimate using balance heuristic.
 2. **Build light subpath:** y₀ (light) → y₁ → ... → yₗ
 3. **Connect subpaths:** Connect xₖ to yₗ
 4. **Weight contributions:** Use MIS to weight different connection strategies
+
+**Path notation:**
+- Path of length k (k+1 vertices): x₀ → x₁ → ... → xₖ
+- Sampled with s vertices from light, t from eye: s + t = k + 1
+- Path denoted: x̄_{s,t}
+
+**Connection strategies:**
+- Each length k can be sampled in k+2 ways (different s,t combinations)
+- s = 0,1,...,k+1 and t = k+1-s
+- Probability density for technique (s,t): p_{s,t}
 
 **BDPT Pseudocode (Conceptual):**
 ```

@@ -115,52 +115,139 @@ The mesh is much more memory-efficient for this example!
 
 **Goal:** Generate new 3D shapes similar to training data
 
+**Abstract View:**
+- Objects in database = samples of non-uniform probability density
+- Generative model: Maps random noise z ~ p_z to data space
+- Goal: Generated distribution matches data distribution
+
 **Applications:**
 - Content creation
 - Data augmentation
 - Shape completion
 - Style transfer
 
-### Approaches
+### Training Objectives
 
-#### 1. Variational Autoencoders (VAEs)
+**Challenge:** How to formulate loss function?
+
+**Approaches:**
+1. **Estimate densities explicitly:** Minimize divergence (KL, JS, Wasserstein)
+2. **Adversarial training:** GANs (minimize divergence without explicit densities)
+3. **Maximum likelihood:** VAE, flow-based models
+4. **Score-based:** Estimate gradient of density, use Langevin/diffusion sampling
+
+### Variational Autoencoders (VAEs)
 
 **Architecture:**
-- Encoder: Shape → latent code z
+- Encoder: Shape → latent code z (with uncertainty)
 - Decoder: Latent code z → Shape
 - Latent space: Lower-dimensional representation
 
 **Training:**
 - Reconstruction loss: ||x - decode(encode(x))||²
 - Regularization: KL divergence to prior (typically N(0,I))
+- **ELBO (Evidence Lower BOund):** Maximize log p(x) ≥ E[log p(x|z)] - KL(q(z|x) || p(z))
 
 **Sampling:**
 - Sample z ~ N(0,I)
 - Decode to generate new shape
 
-#### 2. Generative Adversarial Networks (GANs)
+### Generative Adversarial Networks (GANs)
+
+**Key Paper:** Goodfellow et al., 2014
 
 **Architecture:**
-- Generator: z → Shape
-- Discriminator: Shape → Real/Fake probability
+- Generator G: z → Shape (z ~ p_z, typically N(0,I))
+- Discriminator D: Shape → probability(real)
+
+**Mathematical Formulation:**
+```
+min_G max_D V(D,G) = E_{x~p_data}[log D(x)] + E_{z~p_z}[log(1 - D(G(z)))]
+```
 
 **Training:**
-- Adversarial: Generator tries to fool discriminator
-- Discriminator tries to distinguish real from fake
+- **Generator:** Minimize V (maximize log D(G(z)))
+- **Discriminator:** Maximize V (distinguish real from fake)
+- Two-player minimax game
+- Switch between optimizing G and D
+
+**Theoretical Analysis:**
+- GAN training minimizes **Jensen-Shannon divergence** between p_G and p_data
+- Optimal discriminator: D*(x) = p_data(x) / (p_data(x) + p_G(x))
+- At optimum: p_G = p_data, D* = 1/2
+
+**KL Divergence:**
+```
+KL(P||Q) = Σ_x P(x) log(P(x)/Q(x))
+```
+- Measures "extra bits" when encoding P using optimal code for Q
+- Not symmetric
+
+**JS Divergence:**
+```
+JS(P||Q) = (1/2) KL(P||M) + (1/2) KL(Q||M)
+```
+Where M = (P + Q)/2
+- Symmetric version of KL
+- √JS is a metric
+
+**Pros:**
+- Theoretical guarantees
+- Fast generation (no iteration)
+- Conceptually simple
+
+**Cons:**
+- Training unstable
+- Mode collapse (low diversity)
+- Requires hyperparameter tuning
+
+### Diffusion Models
+
+**Key Paper:** Sohl-Dickstein et al., 2015; DDPM (Ho et al., 2020)
+
+**Basic Idea:**
+- Forward diffusion: Iteratively add noise to data → Gaussian
+- Reverse diffusion: Learn to denoise → generate
+
+**Forward Diffusion:**
+```
+q(x_t | x_{t-1}) = N(x_t; √(1-β_t) x_{t-1}, β_t I)
+```
+
+Where β_t is noise schedule (variance at step t)
+
+**Joint distribution:**
+```
+q(x_{1:T} | x_0) = Π_{t=1}^T q(x_t | x_{t-1})
+```
+
+**Reverse Diffusion:**
+- Learn p_θ(x_{t-1} | x_t) to reverse process
+- If β_t small enough, reverse is also Gaussian
+- Train network to predict mean μ_θ(x_t, t)
+
+**Training Objective:**
+- Minimize negative log-likelihood
+- Practical: Train noise prediction network ε_θ(x_t, t)
+- Loss: ||ε_t - ε_θ(x_t, t)||²
 
 **Sampling:**
-- Sample z ~ N(0,I)
-- Generate shape using generator
+```
+x_T ~ N(0,I)
+for t = T to 1:
+    x_{t-1} = (1/√(1-β_t)) (x_t - (β_t/√(1-α_t)) ε_θ(x_t, t)) + σ_t z
+```
 
-#### 3. Diffusion Models
+Where α_t = Π_{s=1}^t (1-β_s), z ~ N(0,I)
 
-**Process:**
-- Forward: Gradually add noise to shape
-- Reverse: Learn to denoise (generate)
+**Advantages:**
+- Stable training
+- High quality samples
+- No mode collapse
 
-**Training:**
-- Learn denoising network
-- Sample by reversing diffusion process
+**Disadvantages:**
+- Slow generation (many steps)
+- Requires many iterations
 
 ### Shape Representations for Generation
 
@@ -203,6 +290,58 @@ The mesh is much more memory-efficient for this example!
 **Problem:** 3D generative models are complex and data-intensive
 
 **Idea:** Leverage powerful 2D generative models (trained on images) for 3D shape generation
+
+### EG3D: Efficient Geometry-aware 3D GANs
+
+**Key Paper:** "Efficient Geometry-aware 3D Generative Adversarial Networks" (CVPR 2022)
+
+**Goal:** Train 3D GAN without 3D supervision (only 2D images)
+
+**Architecture:**
+1. **3D Shape Generator:** z → tri-plane features
+2. **Differentiable NeRF Rendering:** tri-planes → image
+3. **Image GAN Discriminator:** image → real/fake
+
+**Hybrid Representation (Tri-planes):**
+- Instead of full 3D grid or pure MLP
+- Three 2D feature grids (XY, XZ, YZ planes)
+- For 3D point: project onto 3 planes, lookup features, average
+- Feed to small MLP to predict density and radiance
+
+**Advantages:**
+- Faster training than pure MLP
+- Higher resolution than full 3D grid
+- Memory efficient
+
+**StyleGAN2 Generator:**
+- Well-engineered architecture
+- Mapping network: z → w (latent space)
+- Modulation/demodulation for style control
+- Convolutional layers with learned weights
+
+**Training:**
+- Image-based discriminator (no 3D data needed)
+- Camera parameters estimated from images
+- Conditional on camera parameters
+
+### DreamFusion: Text-to-3D
+
+**Key Paper:** "DreamFusion: Text-to-3D using 2D Diffusion" (2022)
+
+**Goal:** Generate 3D shapes from text descriptions
+
+**Approach:**
+- Leverage pre-trained text-to-image diffusion model
+- Use Score Distillation Sampling (SDS)
+- Differentiable rendering connects 3D to 2D
+
+**Score Distillation Sampling:**
+- Render 3D shape from random viewpoint
+- Evaluate diffusion model on rendered image
+- Use gradient to update 3D representation
+- Diffusion model frozen (not trained)
+
+**Key insight:** Diffusion model provides "score" (gradient of log density) that guides 3D optimization
 
 ### Approaches
 

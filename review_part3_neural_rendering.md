@@ -12,44 +12,71 @@
 ### Problem Statement
 
 **Challenge:** Monte Carlo rendering produces noisy images, especially with few samples per pixel.
+- Noise/variance, slow convergence O(1/√n)
+- Need many samples for clean images
 
 **Solution:** Use neural networks to denoise noisy Monte Carlo renders.
 
-### Approach
+### Image-to-Image Translation
 
-**Input:** Noisy rendered image (low sample count)
-**Output:** Clean, denoised image
+**General approach:**
+- Input: Noisy image
+- Deep neural network
+- Output: Clean image
+
+**Applications:** Denoising, super-resolution, style transfer, etc.
+
+### DnCNN: Deep CNN for Image Denoising
+
+**Key Paper:** "Beyond a Gaussian Denoiser: Residual Learning of Deep CNN for Image Denoising" (Zhang et al., 2016)
+
+**Architecture:**
+- 20 layers, 64 3×3 convolution filters per layer (64 channels)
+- Batch normalization in each layer
+- ReLU activation
+- **Residual learning:** Predict noise instead of pixel value
+- No downsampling/upsampling, no skip connections
 
 **Training:**
-- Input: Noisy images (few samples)
-- Ground truth: Reference images (many samples)
-- Loss: L2 or L1 loss between denoised output and ground truth
+- Training data: Pairs of noisy/clean images (add known noise to clean images)
+- Loss: L2 loss (sum of squared differences per pixel)
+- Train on multiple noise levels
 
-### Key Concepts
+**Key insight:** Predicting residual (noise) is easier than predicting clean image directly.
 
-**Neural Network Architecture:**
-- Typically convolutional neural networks (CNNs)
-- Input: Noisy image + auxiliary buffers (normals, depth, albedo)
-- Output: Denoised RGB image
+### Neural Network Architectures for Denoising
 
-**Auxiliary Buffers (AOVs - Arbitrary Output Variables):**
-- Surface normals
-- Depth
-- Albedo (diffuse color)
-- Direct/indirect lighting separation
-- Help network understand scene structure
+**Common architectures:**
+- **U-Net:** Encoder-decoder with skip connections
+- **ResNet:** Residual connections
+- **Attention mechanisms:** Focus on important features
+
+**Input features:**
+- Noisy RGB image
+- Auxiliary buffers (AOVs):
+  - Surface normals
+  - Depth
+  - Albedo (diffuse color)
+  - Direct/indirect lighting separation
+  - Variance estimates
+
+**Auxiliary buffers help network:**
+- Understand scene structure
+- Distinguish noise from signal
+- Preserve fine details
 
 ### Advantages
 
 1. **Fast:** Denoising faster than rendering more samples
 2. **Effective:** Can reduce noise significantly
-3. **General:** Works across different scenes
+3. **General:** Works across different scenes (with good training)
 
 ### Limitations
 
 1. **Training data:** Needs diverse training scenes
 2. **Artifacts:** May introduce blurring or incorrect details
 3. **Generalization:** May not work well on scenes very different from training data
+4. **Requires auxiliary buffers:** Need to compute normals, depth, etc.
 
 ### Practice Problem 1
 
@@ -113,9 +140,23 @@ Where:
 3. Train network to satisfy rendering equation
 
 **Training:**
-- Loss function: Difference between left and right side of rendering equation
-- Use automatic differentiation for gradients
-- Optimize network weights via gradient descent
+- Loss function: Norm of residual of rendering equation
+  ```
+  L(θ) = ||L_θ - (L_e + T L_θ)||²
+  ```
+- Estimate norm using Monte Carlo sampling of surface locations x_j and directions ω_{o,j}
+- Minimize loss using stochastic gradient descent with batches of Monte Carlo samples
+- Network trained for each scene individually
+
+**Network architecture:**
+- Instead of naïve MLP, use sparse multiresolution feature grid
+- More efficient than pure MLP
+- Details in paper: https://arxiv.org/abs/2105.12319
+
+**Dynamic scenes:**
+- Can "re-use" and adapt network trained for initial scene
+- Fine-tuning converges faster than original training
+- Network updated to represent new scene geometry
 
 ### Neural Representations in Graphics
 
@@ -199,10 +240,49 @@ Where:
 3. Construct path x = Φ(y)
 4. Use importance sampling with learned PDF p_T
 
-**Training:**
+**Core idea:** Primary Sample Space (PSS) warping
+- Non-linear warp Ψ leads to warped PSS with non-uniform density
+- Warp uniform PSS → non-uniform PSS proportional to integrand
+
+**Warping function requirements:**
+- One-to-one mapping
+- Easily invertible
+- Easy to calculate determinant of Jacobian
+- Represent complicated warps
+
+**Solution: Normalizing Flow Networks**
+- Neural networks that implement invertible transformations
+- Can compute Jacobian determinant efficiently
+- Trained using maximum likelihood estimation
+
+### Sampling-Importance Resampling (SIR)
+
+**Goal:** Draw samples from density proportional to integrand f
+
+**Process:**
+1. **Sampling:** Draw n samples X = {x₀, ..., x_{n-1}} from proposal distribution q (e.g., uniform)
+2. **Resampling:** Draw samples Y from X with probability:
+   ```
+   Pr[i] = w_i / Σ_j w_j
+   where w_i = f(x_i) / q(x_i)
+   ```
+3. As n → ∞, Y has density proportional to f
+
+**Disadvantage:** Need to evaluate f for all samples in X (wasted work)
+
+**Neural importance sampling:**
+- Use SIR to get small set of samples Y
+- Train warping function to approximate distribution of Y
+- Generate additional samples from learned distribution
+- **Key:** Must compute PDF for each sample (required for Monte Carlo)
+
+### Training
+
+**Training objective:**
 - Minimize variance of Monte Carlo estimator
 - Learn transformation T using neural network
 - Use automatic differentiation for gradients
+- Maximum likelihood estimation based on samples Y
 
 ### Advantages
 
