@@ -152,6 +152,39 @@ L = (I - T)^(-1) L_e = Σ_{k=0}^∞ T^k L_e
 - Trace paths backward
 - Sample light sources and BRDF
 
+**Path Tracing Pseudocode:**
+```
+// Main rendering loop
+for each pixel:
+    color = 0
+    for i = 1 to N:  // N samples per pixel
+        alpha = 1
+        hitRecord = shootPrimaryRay(pixel)
+        k = 0
+        while true:
+            // Next event estimation: connect to light
+            lightPoint = sampleLight()
+            color += alpha * shade(hitRecord, lightPoint) / pdf(lightPoint)
+            
+            // Russian roulette termination
+            if random() < q[k]:
+                break
+            
+            // Sample next direction (BRDF sampling)
+            direction = sampleBRDF(hitRecord)
+            hitRecord = shootRay(hitRecord, direction)
+            alpha = alpha * BRDF * cos / (pdf(direction) * (1 - q[k]))
+            k++
+    color = color / N
+    setPixel(pixel, color)
+```
+
+**Key components:**
+- `alpha`: Accumulated throughput (product of BRDFs and cosines)
+- `q[k]`: Russian roulette termination probability at depth k
+- `shade(hitRecord, lightPoint)`: Computes contribution from light point
+- Typically: q[0] = q[1] = 0 (never terminate early), q[k] = 0.5 for k > 1
+
 #### 2. Light Tracing (Backward)
 - Start from light sources
 - Trace paths forward
@@ -289,6 +322,23 @@ Typically β = 2.
 - Need to compute probability densities for each sample under all strategies
 - Convert between surface area and solid angle densities: p_solid_angle = p_area / (cos × r²)
 
+**MIS Implementation Pseudocode:**
+```
+function computeMISContribution(sample, strategies):
+    // strategies = list of (pdf_function, sample_value) pairs
+    total_pdf = 0
+    for (pdf_func, _) in strategies:
+        total_pdf += pdf_func(sample)
+    
+    contributions = []
+    for (pdf_func, sample_val) in strategies:
+        weight = pdf_func(sample) / total_pdf  // Balance heuristic
+        contribution = weight * f(sample_val) / pdf_func(sample_val)
+        contributions.append(contribution)
+    
+    return sum(contributions) / len(strategies)
+```
+
 ### Practice Problem 3
 
 **Question:** Estimate the reflection integral for a surface where:
@@ -352,6 +402,37 @@ Compute MIS estimate using balance heuristic.
 2. **Build light subpath:** y₀ (light) → y₁ → ... → yₗ
 3. **Connect subpaths:** Connect xₖ to yₗ
 4. **Weight contributions:** Use MIS to weight different connection strategies
+
+**BDPT Pseudocode (Conceptual):**
+```
+for each pixel:
+    // Build eye subpath
+    eyePath = []
+    current = camera
+    while random() > q_eye:
+        eyePath.append(current)
+        current = sampleBRDF(current)
+    
+    // Build light subpath
+    lightPath = []
+    current = sampleLight()
+    while random() > q_light:
+        lightPath.append(current)
+        current = sampleBRDF(current)
+    
+    // Evaluate all connections
+    for s = 0 to len(eyePath):
+        for t = 0 to len(lightPath):
+            if canConnect(eyePath[s], lightPath[t]):
+                contribution = computePathContribution(eyePath, lightPath, s, t)
+                weight = computeMISWeight(eyePath, lightPath, s, t)
+                pixel += weight * contribution
+```
+
+**Key points:**
+- Each path length k can be sampled in k+2 ways (different connection strategies)
+- MIS weights combine all strategies that could generate the same path
+- More efficient for caustics and small lights
 
 ### Path Contribution
 

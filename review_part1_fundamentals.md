@@ -82,10 +82,57 @@ Accelerate ray-scene intersection queries, which are the computational bottlenec
 - Split along longest axis
 - Stop when node contains few objects (leaf node)
 
+**BVH Construction Pseudocode:**
+```
+function buildBVH(objects):
+    if len(objects) <= MAX_OBJECTS_PER_LEAF:
+        return LeafNode(objects)
+    
+    // Find bounding box
+    bbox = computeBoundingBox(objects)
+    
+    // Split along longest axis
+    axis = longestAxis(bbox)
+    splitPos = median(objects, axis)  // or other strategy
+    
+    // Partition objects
+    left = [obj for obj in objects if obj.center[axis] < splitPos]
+    right = [obj for obj in objects if obj.center[axis] >= splitPos]
+    
+    // Recursively build children
+    return InternalNode(
+        bbox,
+        buildBVH(left),
+        buildBVH(right)
+    )
+```
+
 **Query:**
 - Traverse tree from root
 - Test ray against bounding volumes
 - Only test objects in intersected nodes
+
+**BVH Query Pseudocode:**
+```
+function intersectBVH(ray, node):
+    // Test ray against bounding box
+    if not intersectRayAABB(ray, node.bbox):
+        return null
+    
+    if node.isLeaf():
+        // Test all objects in leaf
+        closest = null
+        for obj in node.objects:
+            hit = intersectRayObject(ray, obj)
+            if hit and (closest == null or hit.t < closest.t):
+                closest = hit
+        return closest
+    else:
+        // Recursively test children
+        hitLeft = intersectBVH(ray, node.left)
+        hitRight = intersectBVH(ray, node.right)
+        return closest(hitLeft, hitRight)
+```
 
 **Time Complexity:**
 - Construction: O(n log n)
