@@ -380,10 +380,38 @@ But the integral should be 2, not π/2. The issue is that p(x) needs to be norma
 2. Compute inverse: P⁻¹(u) where u ~ Uniform[0,1]
 3. Sample: X = P⁻¹(U) where U ~ Uniform[0,1]
 
+**Inversion Method Pseudocode (1D):**
+```
+function sampleFromPDF(p, domain):
+    // Precompute CDF
+    P = computeCDF(p, domain)
+    P_inv = computeInverse(P)
+    
+    // Sample
+    u = randomUniform()
+    x = P_inv(u)
+    return x
+```
+
 **Discrete Case:**
 1. Compute discrete CDF: P_i = Σ_{j=0}^i p_j
 2. Sample u ~ Uniform[0,1]
 3. Find i such that P_{i-1} < u ≤ P_i
+
+**Discrete Sampling Pseudocode:**
+```
+function sampleDiscrete(probabilities):
+    // probabilities = [p_0, p_1, ..., p_{n-1}]
+    // Compute CDF
+    cdf = [0]
+    for i = 1 to n:
+        cdf[i] = cdf[i-1] + probabilities[i-1]
+    
+    // Sample
+    u = randomUniform() * cdf[n-1]
+    // Binary search to find i where cdf[i-1] < u <= cdf[i]
+    return binarySearch(cdf, u)
+```
 
 ### 2D Sampling (Sample Warping)
 
@@ -397,11 +425,43 @@ But the integral should be 2, not π/2. The issue is that p(x) needs to be norma
 - Uniform samples on disk → map to hemisphere
 - Results in p(ω) = cos(θ)/π distribution
 
+**Cosine-Weighted Hemisphere Sampling Pseudocode:**
+```
+function sampleCosineHemisphere():
+    // Sample uniform on disk
+    u1 = randomUniform()
+    u2 = randomUniform()
+    r = sqrt(u1)
+    phi = 2 * PI * u2
+    x = r * cos(phi)
+    y = r * sin(phi)
+    
+    // Map to hemisphere
+    z = sqrt(1 - x*x - y*y)
+    return normalize(x, y, z)
+```
+
 **Theory:**
 - Express PDF in convenient coordinates
 - Transform PDF to sampling coordinates using Jacobian
 - Use marginal and conditional PDFs: p(x,y) = p(x) p(y|x)
 - Sample each 1D PDF using inversion method
+
+**General 2D Sampling Pseudocode:**
+```
+function sample2D(pdf_2d):
+    // Factor into marginal and conditional
+    pdf_marginal = integrate(pdf_2d, dim=1)  // p(x)
+    pdf_conditional = pdf_2d / pdf_marginal   // p(y|x)
+    
+    // Sample marginal
+    x = sampleFromPDF(pdf_marginal, inversion_method)
+    
+    // Sample conditional
+    y = sampleFromPDF(pdf_conditional(x), inversion_method)
+    
+    return (x, y)
+```
 
 ### Variance Reduction Techniques
 
