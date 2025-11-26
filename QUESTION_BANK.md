@@ -1,10 +1,12 @@
-# CMSC 740 Final Exam Question Bank
+# CMSC 740 Final Exam Question Bank & Practice Problems
 
 **Final Exam Date:** Thursday, December 18, 10:30am - 12:30pm, IRB2107
 
-This question bank covers all topics from the course and includes questions requiring text answers, equations, sketches, and calculations.
+This comprehensive collection covers all topics from the course and includes:
+- **Exam-style questions** requiring text answers, equations, and sketches
+- **Computational problems** with step-by-step solutions
 
-**Organization:** Questions are organized by major topics matching the course structure.
+**Organization:** Questions and problems are organized by major topics matching the course structure.
 
 ---
 
@@ -129,6 +131,35 @@ for each pixel:
 - With BVH (depth 20, ~10 objects per leaf): ~20 × 10 = 200 tests per ray
 - Speedup: 1,000,000 / 200 = **5,000×**
 
+#### Problem 2.4 (Computational)
+**Problem:** A scene contains 500,000 triangles. Without acceleration structures, how many intersection tests are needed for a 1920×1080 image? With a BVH of depth 19 and average 8 objects per leaf?
+
+**Solution:**
+- **Without acceleration:**
+  - Tests per ray: up to 500,000
+  - Total rays: 1920 × 1080 = 2,073,600
+  - Total tests: 500,000 × 2,073,600 = **1.037 × 10¹² tests**
+
+- **With BVH:**
+  - Tests per ray: ~19 × 8 = 152 (depth × objects per leaf)
+  - Total tests: 152 × 2,073,600 = **3.15 × 10⁸ tests**
+  - **Speedup: 3,290×**
+
+#### Problem 2.5 (Computational)
+**Problem:** Compare memory usage for a BVH vs. uniform grid for a scene with 1,000,000 triangles. Assume BVH has 2,000,000 nodes (each 32 bytes) and uniform grid is 100×100×100 (each cell stores 4-byte pointer to object list, average 10 objects per cell).
+
+**Solution:**
+- **BVH:**
+  - Nodes: 2,000,000 × 32 bytes = **64 MB**
+
+- **Uniform Grid:**
+  - Cells: 100³ = 1,000,000 cells
+  - Pointers: 1,000,000 × 4 bytes = 4 MB
+  - Object lists: 1,000,000 × 10 × 4 bytes = 40 MB
+  - Total: **44 MB**
+
+- **BVH uses more memory** but provides better query performance for most scenes.
+
 ---
 
 ## Topic 3: Radiometry
@@ -207,6 +238,37 @@ for each pixel:
     = L_i × 2π × [sin²θ/2]_0^(π/2)
     = L_i × 2π × (1/2)
     = π L_i
+  ```
+
+#### Problem 3.5 (Computational)
+**Problem:** A point light source emits 200W uniformly. Calculate:
+a) Radiant intensity
+b) Irradiance at 3m on perpendicular surface
+c) Irradiance at 3m on surface tilted 60° from perpendicular
+
+**Solution:**
+- **a) Radiant Intensity:**
+  - For isotropic source: I = Φ/(4π) = 200W/(4π) = **15.92 W/sr**
+
+- **b) Irradiance (perpendicular):**
+  - Distance: r = 3m
+  - Surface area: A = 4πr² = 4π(3)² = 36π m²
+  - Irradiance: E = Φ/A = 200W/(36π m²) = **1.77 W/m²**
+
+- **c) Irradiance (tilted 60°):**
+  - E_tilted = E × cos(60°) = 1.77 × 0.5 = **0.885 W/m²**
+
+#### Problem 3.6 (Computational)
+**Problem:** A surface receives uniform radiance L_i = 2.0 W/(m²·sr) from the hemisphere above. Calculate the irradiance.
+
+**Solution:**
+- **Irradiance:**
+  ```
+  E = ∫_hemisphere L_i cos θ_i dω_i
+    = L_i ∫_hemisphere cos θ_i dω_i
+    = L_i × π
+    = 2.0 × π
+    = 6.28 W/m²
   ```
 
 ---
@@ -318,6 +380,82 @@ Show your work and compare the variances.
   - Deterministic (not random)
   - Better for low dimensions
 
+#### Problem 4.6 (Computational)
+**Problem:** Estimate I = ∫_0^1 e^x dx = e - 1 ≈ 1.718 using Monte Carlo with:
+a) Uniform sampling
+b) Importance sampling with p(x) = e^x / (e - 1)
+
+Compare variances.
+
+**Solution:**
+- **a) Uniform Sampling:**
+  - Sample X_i ~ Uniform[0,1]
+  - Estimator: Î = (1/N) Σ e^(X_i)
+  - E[Î] = e - 1 ✓
+  - Var[Î] = (1/N) Var[e^X] where X ~ Uniform[0,1]
+  - Var[e^X] = E[e^(2X)] - (E[e^X])²
+  - E[e^X] = e - 1
+  - E[e^(2X)] = (1/2)(e² - 1)
+  - Var[e^X] = (1/2)(e² - 1) - (e - 1)² ≈ 0.242
+  - Var[Î] ≈ 0.242/N
+
+- **b) Importance Sampling:**
+  - Sample from p(x) = e^x / (e - 1)
+  - CDF: P(x) = (e^x - 1)/(e - 1)
+  - Inverse: x = ln(1 + u(e - 1)) where u ~ Uniform[0,1]
+  - Estimator: Î = (1/N) Σ e^X / p(X) = (1/N) Σ (e - 1) = e - 1
+  - **Zero variance!** (optimal importance sampling)
+
+#### Problem 4.7 (Computational)
+**Problem:** Sample from PDF p(x) = 3x² on [0,1] using inversion method.
+
+**Solution:**
+1. **CDF:**
+   ```
+   P(x) = ∫_0^x 3t² dt = x³
+   ```
+
+2. **Inverse:**
+   ```
+   P⁻¹(u) = u^(1/3)
+   ```
+
+3. **Sample:**
+   ```
+   X = U^(1/3) where U ~ Uniform[0,1]
+   ```
+
+**Verification:**
+- PDF of X = U^(1/3):
+  - P(X ≤ x) = P(U^(1/3) ≤ x) = P(U ≤ x³) = x³
+  - p_X(x) = d/dx (x³) = 3x² ✓
+
+#### Problem 4.8 (Computational)
+**Problem:** Uniformly sample a hemisphere. Show that the PDF in spherical coordinates is p(θ,φ) = sin(θ)/(2π).
+
+**Solution:**
+- **Desired PDF:** p(ω) = 1/(2π) (uniform on hemisphere)
+- **Transform to spherical:** (θ,φ) where θ ∈ [0,π/2], φ ∈ [0,2π]
+- **Jacobian:** |J| = sin θ
+- **PDF in spherical:**
+  ```
+  p(θ,φ) = p(ω) × sin θ = (1/(2π)) × sin θ = sin(θ)/(2π)
+  ```
+
+- **Marginal:**
+  ```
+  p(θ) = ∫_0^(2π) sin(θ)/(2π) dφ = sin(θ)
+  ```
+
+- **Conditional:**
+  ```
+  p(φ|θ) = (sin(θ)/(2π)) / sin(θ) = 1/(2π)
+  ```
+
+- **Sampling:**
+  - θ: P(θ) = 1 - cos(θ), so θ = arccos(1 - u₁)
+  - φ: φ = 2πu₂
+
 ---
 
 ---
@@ -395,6 +533,42 @@ Show your work and compare the variances.
   - Perfect mirror reflection (or refraction)
   - Example: Mirror, glass
   - BRDF: Dirac delta function, f_r(ω_i → ω_o) = δ(ω_o - reflect(ω_i))
+
+#### Problem 5.5 (Computational)
+**Problem:** A Lambertian surface with albedo ρ_d = 0.6 is illuminated by:
+- Uniform radiance L_i = 1.0 from hemisphere above
+- Additional point light: L_point = 5.0 in direction (0, 0.707, 0.707) (45° from normal)
+
+Calculate total outgoing radiance in normal direction.
+
+**Solution:**
+- **From uniform illumination:**
+  ```
+  L_o_uniform = (ρ_d/π) × L_i × π = ρ_d × L_i = 0.6 × 1.0 = 0.6
+  ```
+
+- **From point light:**
+  - Direction: ω_i = (0, 0.707, 0.707)
+  - cos θ_i = 0.707
+  - L_o_point = (ρ_d/π) × L_point × cos θ_i = (0.6/π) × 5.0 × 0.707 = 0.675
+
+- **Total:**
+  ```
+  L_o = 0.6 + 0.675 = 1.275
+  ```
+
+#### Problem 5.6 (Computational)
+**Problem:** Verify energy conservation for Lambertian BRDF: f_r = ρ_d / π. Show that ∫_hemisphere f_r cos θ_i dω_i = ρ_d.
+
+**Solution:**
+```
+∫_hemisphere f_r cos θ_i dω_i = ∫_hemisphere (ρ_d/π) cos θ_i dω_i
+                                = (ρ_d/π) ∫_hemisphere cos θ_i dω_i
+                                = (ρ_d/π) × π
+                                = ρ_d ✓
+```
+
+Since ρ_d ≤ 1, energy is conserved.
 
 ---
 
@@ -509,6 +683,21 @@ for each pixel:
   - Explicitly handles occlusion (V term)
   - More suitable for some algorithms (BDPT, photon mapping)
 
+#### Problem 6.5 (Computational)
+**Problem:** Expand the Neumann series L = Σ T^k L_e for k = 0, 1, 2. Interpret each term physically.
+
+**Solution:**
+- **k = 0:** L₀ = L_e
+  - Direct emission from light sources
+
+- **k = 1:** L₁ = T L_e
+  - One bounce: light emitted, then reflected once
+
+- **k = 2:** L₂ = T² L_e
+  - Two bounces: light emitted, reflected twice
+
+- **Full solution:** L = L₀ + L₁ + L₂ + ... (infinite bounces)
+
 ---
 
 ## Topic 7: Advanced Sampling Techniques (MIS)
@@ -559,6 +748,27 @@ for each pixel:
   - BRDF only: 10 (high variance)
   - Light only: 2 (high variance)
   - MIS: 5.345 (lower variance)
+
+#### Problem 7.3 (Computational)
+**Problem:** For direct illumination, we have two strategies:
+- Strategy 1 (BSDF): p₁(x) = 0.2, f/p₁ = 8
+- Strategy 2 (Light): p₂(x) = 0.3, f/p₂ = 4
+
+Compute MIS estimate using balance heuristic.
+
+**Solution:**
+- **Balance heuristic weights:**
+  - w₁ = 0.2 / (0.2 + 0.3) = 0.4
+  - w₂ = 0.3 / (0.2 + 0.3) = 0.6
+
+- **Contributions:**
+  - Strategy 1: w₁ × (f/p₁) = 0.4 × 8 = 3.2
+  - Strategy 2: w₂ × (f/p₂) = 0.6 × 4 = 2.4
+
+- **MIS estimate (with 1 sample each):**
+  ```
+  Î = (1/2) × (3.2 + 2.4) = 2.8
+  ```
 
 ---
 
@@ -657,6 +867,31 @@ for each pixel:
   - Subsurface scattering (skin, marble, milk)
   - Light enters material, scatters internally, exits elsewhere
   - Cannot be modeled with BRDF
+
+#### Problem 9.4 (Computational)
+**Problem:** Light travels through fog with σ_t = 0.05 m⁻¹. Calculate:
+a) Transmittance after 20m
+b) Distance for 10% transmittance
+c) Optical thickness after 20m
+
+**Solution:**
+- **a) Transmittance:**
+  ```
+  T = exp(-0.05 × 20) = exp(-1) ≈ 0.368
+  ```
+  **Answer:** 36.8% survives
+
+- **b) 10% transmittance:**
+  ```
+  0.1 = exp(-0.05 × d)
+  -ln(0.1) = 0.05 × d
+  d = 2.303 / 0.05 = 46.06 meters
+  ```
+
+- **c) Optical thickness:**
+  ```
+  τ = σ_t × d = 0.05 × 20 = 1.0
+  ```
 
 ---
 
@@ -841,6 +1076,16 @@ for each pixel:
 - **Hierarchical sampling:**
   - Coarse network (64 samples) → define PDF
   - Fine network (128 samples) → importance sample according to PDF
+
+#### Problem 14.4 (Computational)
+**Problem:** A NeRF renders a 1920×1080 image. If we use 128 samples per ray, how many network evaluations are needed per image?
+
+**Solution:**
+- **Pixels:** 1920 × 1080 = 2,073,600
+- **Samples per pixel:** 128
+- **Network evaluations:** 2,073,600 × 128 = **265,420,800 evaluations**
+
+This demonstrates why efficient network architectures are crucial!
 
 ---
 
@@ -1052,6 +1297,61 @@ for each pixel:
   - Path tracing uses Monte Carlo to estimate rendering equation
   - Importance sampling (BRDF, light) reduces variance
   - MIS combines multiple strategies
+
+### Problem C.4 (Computational)
+**Problem:** Derive the three-point form of the rendering equation from the hemispherical form, showing all steps.
+
+**Solution:**
+1. **Start with hemispherical form:**
+   ```
+   L_o(x, ω_o) = L_e(x, ω_o) + ∫_hemisphere f_r(x, ω_i → ω_o) L_i(x, ω_i) cos θ_i dω_i
+   ```
+
+2. **Change of variables:**
+   - From solid angle to surface area
+   - dω_i = (cos θ_y' / ||x - y'||²) dA(y')
+   - L_i(x, ω_i) = V(y' ↔ x) L_o(y' → x)
+
+3. **Substitute:**
+   ```
+   L_o(x, ω_o) = L_e(x, ω_o) + ∫_surface f_r(x, y' → y) V(y' ↔ x) L_o(y' → x) 
+                 × (cos θ_x cos θ_y' / ||x - y'||²) dA(y')
+   ```
+
+4. **Define geometry term:**
+   ```
+   G(y' ↔ x) = V(y' ↔ x) (cos θ_x cos θ_y') / ||x - y'||²
+   ```
+
+5. **Three-point form:**
+   ```
+   L_o(x → y) = L_e(x → y) + ∫_surface f_r(x, y' → y) L_o(y' → x) G(y' ↔ x) dA(y')
+   ```
+
+### Problem C.5 (Computational)
+**Problem:** Compare the variance of estimating ∫_0^1 x² dx = 1/3 using:
+a) Uniform sampling
+b) Importance sampling with p(x) = 2x
+
+**Solution:**
+- **a) Uniform sampling:**
+  - Var[Î] = (1/N) Var[X²] where X ~ Uniform[0,1]
+  - E[X²] = 1/3
+  - E[X⁴] = 1/5
+  - Var[X²] = 1/5 - (1/3)² = 1/5 - 1/9 = 4/45
+  - Var[Î] = 4/(45N)
+
+- **b) Importance sampling:**
+  - Sample from p(x) = 2x
+  - CDF: P(x) = x², so X = √U
+  - Estimator: Î = (1/N) Σ X²/(2X) = (1/N) Σ X/2
+  - E[Î] = E[X/2] = (1/2) × (2/3) = 1/3 ✓
+  - Var[Î] = (1/N) Var[X/2] = (1/(4N)) Var[X]
+  - E[X] = 2/3, E[X²] = 1/2
+  - Var[X] = 1/2 - (2/3)² = 1/18
+  - Var[Î] = 1/(72N)
+
+- **Variance reduction:** (4/45) / (1/72) = 6.4× lower variance with importance sampling
 
 ---
 

@@ -76,10 +76,13 @@ A quick reference guide to all important equations organized by topic.
 
 ---
 
-## Question Bank
-📄 [Question Bank with Answers](QUESTION_BANK.md)
+## Question Bank & Practice Problems
+📄 [Question Bank & Practice Problems](QUESTION_BANK.md)
 
-Comprehensive question bank organized by topic with detailed answers. Questions require text, equations, sketches, and calculations.
+Comprehensive collection organized by topic with:
+- Exam-style questions requiring text, equations, and sketches
+- Computational problems with step-by-step solutions
+- All questions include detailed answers
 
 ## Study Plan
 📄 [14-Day Study Plan](STUDY_PLAN.md)
